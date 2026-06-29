@@ -1,0 +1,149 @@
+import { Link } from "react-router-dom";
+const menuItems = [
+    {
+        title: "Sản phẩm",
+        links: ["Tất cả sản phẩm", "Giày chạy bộ", "Giày lifestyle", "Giày bóng rổ", "Giày training"],
+    },
+    {
+        title: "Hãng",
+        links: ["Nike", "Adidas", "Puma", "Converse", "New Balance", "Vans"],
+    },
+    {
+        title: "Nam",
+        links: ["Sneaker nam", "Giày chạy bộ nam", "Giày thể thao nam"],
+    },
+    {
+        title: "Nữ",
+        links: ["Sneaker nữ", "Giày thể thao nữ", "Giày lifestyle nữ"],
+    },
+];
+
+function SearchIcon() {
+    return (
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" />
+        </svg>
+    );
+}
+
+function HeartIcon() {
+    return (
+        <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+        </svg>
+    );
+}
+function HistoryIcon() {
+    return (
+        <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v5l3 2" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.05 11a9 9 0 1 1 2.64 6.36" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 17v-6h6" />
+        </svg>
+    );
+}
+function UserIcon() {
+    return (
+        <svg
+            className="h-6 w-6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            viewBox="0 0 24 24"
+        >
+            <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15.75 7.5a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"
+            />
+            <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4.5 20.25a7.5 7.5 0 0 1 15 0"
+            />
+        </svg>
+    );
+}
+function BagIcon() {
+    return (
+        <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 8h12l-1 13H7L6 8Z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 8a3 3 0 0 1 6 0" />
+        </svg>
+    );
+}
+
+function Navbar() {
+    return (
+        <header className="fixed top-0 left-0 z-50 w-full border-b border-zinc-800 bg-black/90 backdrop-blur-md">
+            <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
+                <Link to="/" className="text-3xl font-black italic tracking-tight text-white">
+                    KICK<span className="text-red-500">ZONE</span>
+                </Link>
+
+                <nav className="hidden items-center gap-8 text-sm font-bold uppercase text-white lg:flex">
+                    <Link className="text-red-500" to="/">
+                        Trang chủ
+                    </Link>
+
+                    {menuItems.map((item) => (
+                        <div key={item.title} className="group relative">
+                            <button className="flex items-center gap-1 uppercase transition hover:text-red-500">
+                                {item.title}
+                                <span className="text-xs">⌄</span>
+                            </button>
+
+                            <div className="invisible absolute left-1/2 top-8 w-56 -translate-x-1/2 rounded-2xl border border-zinc-800 bg-zinc-950 p-3 opacity-0 shadow-2xl shadow-red-500/10 transition-all duration-200 group-hover:visible group-hover:top-10 group-hover:opacity-100">
+                                {item.links.map((link) => (
+                                    <a
+                                        key={link}
+                                        href="#"
+                                        className="block rounded-xl px-4 py-3 text-sm text-zinc-300 transition hover:bg-red-500 hover:text-white"
+                                    >
+                                        {link}
+                                    </a>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+
+                    <Link className="transition hover:text-red-500" to="/vouchers">
+                        Khuyến mãi
+                    </Link>
+                </nav>
+
+                <div className="flex items-center gap-5 text-white">
+                    <div className="hidden h-11 items-center gap-3 rounded-full bg-zinc-100 px-4 text-zinc-900 transition hover:bg-zinc-200 md:flex">
+                        <SearchIcon />
+                        <input
+                            type="text"
+                            placeholder="Search"
+                            className="w-32 bg-transparent text-base font-medium outline-none placeholder:text-zinc-500"
+                        />
+                    </div>
+                    <Link title="Tài khoản" to="/login" className="transition hover:text-red-500">
+                        <UserIcon />
+                    </Link>
+                    <button className="transition hover:text-red-500">
+                        <HeartIcon />
+                    </button>
+                    <Link
+                        title="Lịch sử đặt hàng"
+                        to="/orders"
+                        className="transition hover:text-red-500"
+                    >
+                        <HistoryIcon />
+                    </Link>
+                    <Link to="/cart" className="relative transition hover:text-red-500">
+                        <BagIcon />
+                        <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                            2
+                        </span>
+                    </Link>
+                </div>
+            </div>
+        </header>
+    );
+}
+
+export default Navbar;
