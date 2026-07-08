@@ -1,8 +1,33 @@
+import { useEffect, useState } from "react";
+import axios from "axios";
 import Hero from "../components/Hero";
 import ProductCard from "../components/ProductCard.jsx";
-import { products } from "../data/products";
 
 function Home() {
+    const [products, setProducts] = useState([]);
+    useEffect(() => {
+
+        fetchProducts();
+
+    }, []);
+
+    const fetchProducts = async () => {
+
+        try {
+
+            const res = await axios.get("http://localhost:5000/api/products");
+
+            if (res.data.success) {
+                setProducts(res.data.data);
+            }
+
+        } catch (err) {
+
+            console.error("Product Error:", err);
+
+        }
+
+    };
     return (
         <main className="bg-[#0F0F0F]">
             <Hero />
@@ -38,7 +63,7 @@ function Home() {
 
                 <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-4">
                     {products.map((item) => (
-                        <ProductCard key={item.id} product={item} />
+                        <ProductCard key={item.masanpham} product={item} />
                     ))}
                 </div>
             </section>

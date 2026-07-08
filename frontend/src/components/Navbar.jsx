@@ -1,22 +1,6 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-const menuItems = [
-    {
-        title: "Sản phẩm",
-        links: ["Tất cả sản phẩm", "Giày chạy bộ", "Giày lifestyle", "Giày bóng rổ", "Giày training"],
-    },
-    {
-        title: "Hãng",
-        links: ["Nike", "Adidas", "Puma", "Converse", "New Balance", "Vans"],
-    },
-    {
-        title: "Nam",
-        links: ["Sneaker nam", "Giày chạy bộ nam", "Giày thể thao nam"],
-    },
-    {
-        title: "Nữ",
-        links: ["Sneaker nữ", "Giày thể thao nữ", "Giày lifestyle nữ"],
-    },
-];
+import axios from "axios";
 
 function SearchIcon() {
     return (
@@ -74,6 +58,49 @@ function BagIcon() {
 }
 
 function Navbar() {
+    const [categories, setCategories] = useState([]);
+    const [brands, setBrands] = useState([]);
+    useEffect(() => {
+
+        fetchNavbarData();
+
+    }, []);
+
+    const fetchNavbarData = async () => {
+
+        try {
+
+            const [categoryRes, brandRes] = await Promise.all([
+
+                axios.get("http://localhost:5000/api/categories"),
+
+                axios.get("http://localhost:5000/api/brands")
+
+            ]);
+
+            if (categoryRes.data.success) {
+                setCategories(categoryRes.data.data);
+            }
+
+            if (brandRes.data.success) {
+                setBrands(brandRes.data.data);
+            }
+
+        } catch (err) {
+
+            console.error("Navbar Error:", err);
+
+        }
+
+    };
+    const maleCategories = categories.filter(
+        item => item.gioitinh === "Nam"
+    );
+
+    const femaleCategories = categories.filter(
+        item => item.gioitinh === "Nữ"
+    );
+
     return (
         <header className="fixed top-0 left-0 z-50 w-full border-b border-zinc-800 bg-black/90 backdrop-blur-md">
             <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
@@ -86,27 +113,91 @@ function Navbar() {
                         Trang chủ
                     </Link>
 
-                    {menuItems.map((item) => (
-                        <div key={item.title} className="group relative">
-                            <button className="flex items-center gap-1 uppercase transition hover:text-red-500">
-                                {item.title}
-                                <span className="text-xs">⌄</span>
-                            </button>
+                    {/* Sản phẩm */}
+                    <div className="group relative">
+                        <button className="flex items-center gap-1 uppercase transition hover:text-red-500">
+                            Sản phẩm
+                            <span className="text-xs">⌄</span>
+                        </button>
 
-                            <div className="invisible absolute left-1/2 top-8 w-56 -translate-x-1/2 rounded-2xl border border-zinc-800 bg-zinc-950 p-3 opacity-0 shadow-2xl shadow-red-500/10 transition-all duration-200 group-hover:visible group-hover:top-10 group-hover:opacity-100">
-                                {item.links.map((link) => (
-                                    <a
-                                        key={link}
-                                        href="#"
-                                        className="block rounded-xl px-4 py-3 text-sm text-zinc-300 transition hover:bg-red-500 hover:text-white"
-                                    >
-                                        {link}
-                                    </a>
-                                ))}
-                            </div>
+                        <div className="invisible absolute left-1/2 top-8 w-56 -translate-x-1/2 rounded-2xl border border-zinc-800 bg-zinc-950 p-3 opacity-0 transition-all group-hover:visible group-hover:top-10 group-hover:opacity-100">
+
+                            {categories.map((category) => (
+                                <a
+                                    key={category.madanhmuc}
+                                    href="#"
+                                    className="block rounded-xl px-4 py-3 text-sm text-zinc-300 hover:bg-red-500 hover:text-white"
+                                >
+                                    {category.tendanhmuc}
+                                </a>
+                            ))}
+
                         </div>
-                    ))}
+                    </div>
 
+                    {/* Hãng */}
+                    <div className="group relative">
+                        <button className="flex items-center gap-1 uppercase transition hover:text-red-500">
+                            Hãng
+                            <span className="text-xs">⌄</span>
+                        </button>
+
+                        <div className="invisible absolute left-1/2 top-8 w-56 -translate-x-1/2 rounded-2xl border border-zinc-800 bg-zinc-950 p-3 opacity-0 transition-all group-hover:visible group-hover:top-10 group-hover:opacity-100">
+
+                            {brands.map((brand) => (
+                                <a
+                                    key={brand.mahang}
+                                    href="#"
+                                    className="block rounded-xl px-4 py-3 text-sm text-zinc-300 hover:bg-red-500 hover:text-white"
+                                >
+                                    {brand.tenhang}
+                                </a>
+                            ))}
+
+                        </div>
+                    </div>
+                    {/* Menu Nam*/}
+                    <div className="group relative">
+                        <button className="flex items-center gap-1 uppercase transition hover:text-red-500">
+                            Nam
+                            <span className="text-xs">⌄</span>
+                        </button>
+
+                        <div className="invisible absolute left-1/2 top-8 w-56 -translate-x-1/2 rounded-2xl border border-zinc-800 bg-zinc-950 p-3 opacity-0 transition-all group-hover:visible group-hover:top-10 group-hover:opacity-100">
+
+                            {maleCategories.map((category) => (
+                                <a
+                                    key={category.madanhmuc}
+                                    href="#"
+                                    className="block rounded-xl px-4 py-3 text-sm text-zinc-300 hover:bg-red-500 hover:text-white"
+                                >
+                                    {category.tendanhmuc}
+                                </a>
+                            ))}
+
+                        </div>
+                    </div>
+                    {/* Menu Nữ */}
+                    <div className="group relative">
+                        <button className="flex items-center gap-1 uppercase transition hover:text-red-500">
+                            Nữ
+                            <span className="text-xs">⌄</span>
+                        </button>
+
+                        <div
+                            className="invisible absolute left-1/2 top-full z-50 mt-3 w-56 -translate-x-1/2 rounded-2xl border border-zinc-800 bg-zinc-950 p-3 opacity-0 shadow-2xl transition-all duration-200 group-hover:visible group-hover:opacity-100"
+                        >
+                            {femaleCategories.map((category) => (
+                                <Link
+                                    key={category.madanhmuc}
+                                    to={`/category/${category.madanhmuc}`}
+                                    className="block rounded-xl px-4 py-3 text-sm text-zinc-300 transition hover:bg-red-500 hover:text-white"
+                                >
+                                    {category.tendanhmuc}
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
                     <Link className="transition hover:text-red-500" to="/vouchers">
                         Khuyến mãi
                     </Link>
