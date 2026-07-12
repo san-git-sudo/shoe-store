@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 function SearchIcon() {
@@ -60,6 +60,8 @@ function BagIcon() {
 function Navbar() {
     const [categories, setCategories] = useState([]);
     const [brands, setBrands] = useState([]);
+    const [keyword, setKeyword] = useState("");
+    const navigate = useNavigate();
     useEffect(() => {
 
         fetchNavbarData();
@@ -92,6 +94,12 @@ function Navbar() {
 
         }
 
+    };
+    //hàm tìm kiếm
+    const handleSearch = () => {
+        if (!keyword.trim()) return;
+
+        navigate(`/search?q=${encodeURIComponent(keyword)}`);
     };
     const maleCategories = categories.filter(
         item => item.gioitinh === "Nam"
@@ -205,10 +213,23 @@ function Navbar() {
 
                 <div className="flex items-center gap-5 text-white">
                     <div className="hidden h-11 items-center gap-3 rounded-full bg-zinc-100 px-4 text-zinc-900 transition hover:bg-zinc-200 md:flex">
-                        <SearchIcon />
+                        <button
+                            type="button"
+                            onClick={handleSearch}
+                            className="hover:text-red-500 transition"
+                        >
+                            <SearchIcon />
+                        </button>
                         <input
                             type="text"
                             placeholder="Search"
+                            value={keyword}
+                            onChange={(e) => setKeyword(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    handleSearch();
+                                }
+                            }}
                             className="w-32 bg-transparent text-base font-medium outline-none placeholder:text-zinc-500"
                         />
                     </div>

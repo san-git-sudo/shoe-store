@@ -1,11 +1,24 @@
 const Product = require("../models/productModel");
 
-// Lấy danh sách sản phẩm
+// Lấy danh sách sản phẩm + tìm kiếm + filter
 const getProducts = async (req, res) => {
 
     try {
 
-        const results = await Product.getAllProducts();
+        const filters = {
+            q: req.query.q,
+            brand: req.query.brand,
+            category: req.query.category,
+            gender: req.query.gender,
+            size: req.query.size,
+            color: req.query.color,
+            minPrice: req.query.minPrice,
+            maxPrice: req.query.maxPrice,
+            inStock: req.query.inStock,
+            sort: req.query.sort
+        };
+
+        const results = await Product.getAllProducts(filters);
 
         const products = results.map(product => ({
             ...product,
@@ -30,7 +43,6 @@ const getProducts = async (req, res) => {
     }
 
 };
-
 // Chi tiết sản phẩm
 const getProductById = async (req, res) => {
 
@@ -52,45 +64,72 @@ const getProductById = async (req, res) => {
         const firstProduct = results[0];
 
         const product = {
+
             masanpham: firstProduct.masanpham,
             tensanpham: firstProduct.tensanpham,
+
             mota: firstProduct.mota,
             chatlieu: firstProduct.chatlieu,
             kieudang: firstProduct.kieudang,
             baoquan: firstProduct.baoquan,
+
             anhdaidien: firstProduct.anhdaidien,
+
+            mahang: firstProduct.mahang,
+            tenhang: firstProduct.tenhang,
+
+            madanhmuc: firstProduct.madanhmuc,
+            tendanhmuc: firstProduct.tendanhmuc,
+
             variants: []
+
         };
 
         results.forEach(item => {
 
-            product.variants.push({
+            let variant = product.variants.find(
+                v => v.mabienthe === item.mabienthe
+            );
 
-                mabienthe: item.mabienthe,
+            if (!variant) {
 
-                giaban: Number(item.giaban),
+                variant = {
 
-                soluongton: item.soluongton,
+                    mabienthe: item.mabienthe,
 
-                kichthuoc: {
-                    makichthuoc: item.makichthuoc,
-                    tenkichthuoc: item.tenkichthuoc
-                },
+                    giaban: Number(item.giaban),
 
-                mausac: {
-                    mamausac: item.mamausac,
-                    tenmausac: item.tenmausac,
-                    hexcode: item.hexcode
-                },
+                    soluongton: item.soluongton,
 
-                hinhanh: item.urlhinhanh
-                    ? [{
-                        urlhinhanh: item.urlhinhanh,
-                        stt: item.stt
-                    }]
-                    : []
+                    kichthuoc: {
+                        makichthuoc: item.makichthuoc,
+                        tenkichthuoc: item.tenkichthuoc
+                    },
 
-            });
+                    mausac: {
+                        mamausac: item.mamausac,
+                        tenmausac: item.tenmausac,
+                        hexcode: item.hexcode
+                    },
+
+                    hinhanh: []
+
+                };
+
+                product.variants.push(variant);
+
+            }
+
+            if (item.urlhinhanh) {
+
+                variant.hinhanh.push({
+
+                    urlhinhanh: item.urlhinhanh,
+                    stt: item.stt
+
+                });
+
+            }
 
         });
 

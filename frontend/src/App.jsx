@@ -8,6 +8,7 @@ import AdminLayout from "./admin/AdminLayout.jsx";
 import OrderHistory from "./pages/OrderHistory.jsx";
 import Cart from "./pages/Cart.jsx";
 import Vouchers from "./pages/Vouchers.jsx";
+import SearchPage from "./pages/SearchPage.jsx";
 
 function App() {
   return (
@@ -49,6 +50,16 @@ function App() {
             <>
               <Navbar />
               <Cart />
+              <Footer />
+            </>
+          }
+        />
+        <Route
+          path="/search"
+          element={
+            <>
+              <Navbar />
+              <SearchPage />
               <Footer />
             </>
           }
