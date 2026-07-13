@@ -131,13 +131,13 @@ function Navbar() {
                         <div className="invisible absolute left-1/2 top-8 w-56 -translate-x-1/2 rounded-2xl border border-zinc-800 bg-zinc-950 p-3 opacity-0 transition-all group-hover:visible group-hover:top-10 group-hover:opacity-100">
 
                             {categories.map((category) => (
-                                <a
+                                <Link
                                     key={category.madanhmuc}
-                                    href="#"
+                                    to={`/search?category=${category.madanhmuc}`}
                                     className="block rounded-xl px-4 py-3 text-sm text-zinc-300 hover:bg-red-500 hover:text-white"
                                 >
                                     {category.tendanhmuc}
-                                </a>
+                                </Link>
                             ))}
 
                         </div>
@@ -153,13 +153,13 @@ function Navbar() {
                         <div className="invisible absolute left-1/2 top-8 w-56 -translate-x-1/2 rounded-2xl border border-zinc-800 bg-zinc-950 p-3 opacity-0 transition-all group-hover:visible group-hover:top-10 group-hover:opacity-100">
 
                             {brands.map((brand) => (
-                                <a
+                                <Link
                                     key={brand.mahang}
-                                    href="#"
+                                    to={`/search?brand=${brand.mahang}`}
                                     className="block rounded-xl px-4 py-3 text-sm text-zinc-300 hover:bg-red-500 hover:text-white"
                                 >
                                     {brand.tenhang}
-                                </a>
+                                </Link>
                             ))}
 
                         </div>
@@ -174,13 +174,13 @@ function Navbar() {
                         <div className="invisible absolute left-1/2 top-8 w-56 -translate-x-1/2 rounded-2xl border border-zinc-800 bg-zinc-950 p-3 opacity-0 transition-all group-hover:visible group-hover:top-10 group-hover:opacity-100">
 
                             {maleCategories.map((category) => (
-                                <a
+                                <Link
                                     key={category.madanhmuc}
-                                    href="#"
+                                    to={`/search?category=${category.madanhmuc}`}
                                     className="block rounded-xl px-4 py-3 text-sm text-zinc-300 hover:bg-red-500 hover:text-white"
                                 >
                                     {category.tendanhmuc}
-                                </a>
+                                </Link>
                             ))}
 
                         </div>
@@ -198,7 +198,7 @@ function Navbar() {
                             {femaleCategories.map((category) => (
                                 <Link
                                     key={category.madanhmuc}
-                                    to={`/category/${category.madanhmuc}`}
+                                    to={`/search?category=${category.madanhmuc}`}
                                     className="block rounded-xl px-4 py-3 text-sm text-zinc-300 transition hover:bg-red-500 hover:text-white"
                                 >
                                     {category.tendanhmuc}

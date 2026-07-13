@@ -9,7 +9,7 @@ import OrderHistory from "./pages/OrderHistory.jsx";
 import Cart from "./pages/Cart.jsx";
 import Vouchers from "./pages/Vouchers.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
-
+import "./App.css";
 function App() {
   return (
     <>
