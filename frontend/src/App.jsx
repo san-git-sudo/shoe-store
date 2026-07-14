@@ -9,6 +9,9 @@ import OrderHistory from "./pages/OrderHistory.jsx";
 import Cart from "./pages/Cart.jsx";
 import Vouchers from "./pages/Vouchers.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
+import Profile from "./pages/Profile";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
 import "./App.css";
 function App() {
   return (
@@ -74,7 +77,37 @@ function App() {
             </>
           }
         />
+        <Route
+          path="/forgot-password"
+          element={
+            <>
+              <Navbar />
+              <ForgotPassword />
+              <Footer />
+            </>
+          }
+        />
 
+        <Route
+          path="/reset-password/:token"
+          element={
+            <>
+              <Navbar />
+              <ResetPassword />
+              <Footer />
+            </>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <>
+              <Navbar />
+              <Profile />
+              <Footer />
+            </>
+          }
+        />
         <Route
           path="/product/:id"
           element={

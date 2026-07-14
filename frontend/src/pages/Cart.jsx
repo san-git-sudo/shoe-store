@@ -15,11 +15,14 @@ function Cart() {
     const [cartItems, setCartItems] = useState([]);
     const [vouchers, setVouchers] = useState([]);
     const [selectedVoucher, setSelectedVoucher] = useState(null);
-    const [voucherCode, setVoucherCode] = useState("");
+
+    // Hiển thị toàn bộ voucher hoặc chỉ voucher tốt nhất
+    const [showAllVouchers, setShowAllVouchers] = useState(false);
     useEffect(() => {
         setCartItems(getCart());
         fetchVouchers();
     }, []);
+
 
     const subtotal = cartItems.reduce(
         (sum, item) => sum + item.price * item.quantity,
@@ -54,6 +57,64 @@ function Cart() {
     }
 
     const total = subtotal - discount;
+    // ======================================================
+    // Tính số tiền thực tế mà một voucher có thể giảm
+    // Dùng để sắp xếp và hiển thị số tiền khách tiết kiệm
+    // ======================================================
+    const calculateVoucherDiscount = (voucher) => {
+        if (!voucher) return 0;
+
+        if (voucher.loaikhuyenmai === "percent") {
+            let discountValue = (subtotal * Number(voucher.giatrigiam || 0)) / 100;
+            const maxDiscount = Number(voucher.giantoida) || 0;
+
+            if (maxDiscount > 0 && discountValue > maxDiscount) {
+                discountValue = maxDiscount;
+            }
+
+            return discountValue;
+        }
+
+        if (voucher.loaikhuyenmai === "fixed") {
+            return Math.min(Number(voucher.giatrigiam) || 0, subtotal);
+        }
+
+        return 0;
+    };
+    // ======================================================
+    // Danh sách voucher phù hợp với đơn hàng hiện tại
+    // Điều kiện:
+    // 1. Đã tới ngày bắt đầu
+    // 2. Chưa qua ngày kết thúc
+    // 3. Đơn hàng đạt giá trị tối thiểu
+    // ======================================================
+    const availableVouchers = vouchers
+        .filter((voucher) => {
+            const now = new Date();
+
+            const startDate = voucher.ngaybatdau
+                ? new Date(voucher.ngaybatdau)
+                : null;
+
+            const endDate = voucher.ngayketthuc
+                ? new Date(voucher.ngayketthuc)
+                : null;
+
+            const minimumOrder = Number(voucher.dontoithieu) || 0;
+
+            const hasStarted = !startDate || startDate <= now;
+
+            const hasNotExpired = !endDate || endDate >= now;
+
+            const enoughOrderValue = subtotal >= minimumOrder;
+
+            return hasStarted && hasNotExpired && enoughOrderValue;
+        })
+        .sort((a, b) => calculateVoucherDiscount(b) - calculateVoucherDiscount(a));
+    // Khi chưa bấm "Xem tất cả", chỉ hiển thị voucher tiết kiệm nhất
+    const displayedVouchers = showAllVouchers
+        ? availableVouchers
+        : availableVouchers.slice(0, 1);
     const fetchVouchers = async () => {
         try {
 
@@ -67,29 +128,12 @@ function Cart() {
             console.log(err);
         }
     };
-    const applyVoucher = () => {
 
-        const voucher = vouchers.find(
-            item =>
-                item.magiamgia.toLowerCase() ===
-                voucherCode.trim().toLowerCase()
-        );
-
-        if (!voucher) {
-            alert("Mã voucher không tồn tại!");
-            return;
-        }
-
-        if (subtotal < voucher.dontoithieu) {
-            alert(
-                `Đơn hàng phải từ ${voucher.dontoithieu.toLocaleString("vi-VN")}đ`
-            );
-            return;
-        }
-
+    // ======================================================
+    // Áp dụng nhanh voucher được đề xuất
+    // ======================================================
+    const applySuggestedVoucher = (voucher) => {
         setSelectedVoucher(voucher);
-
-        alert("Áp dụng voucher thành công!");
     };
 
     return (
@@ -199,46 +243,125 @@ function Cart() {
                         </div>
 
                         <div className="my-8 border-t border-dashed border-zinc-300" />
+                        {/* ======================================================
+    Mỗi đơn hàng chỉ áp dụng một voucher
+====================================================== */}
+                        {availableVouchers.length > 0 && (
+                            <div>
+                                <div className="mb-3 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <span>🎁</span>
 
-                        <label className="mb-3 block font-bold">
-                            Mã giảm giá
-                        </label>
+                                        <h3 className="font-bold">
+                                            Voucher đề xuất
+                                        </h3>
+                                    </div>
 
-                        <div className="flex gap-2">
-
-                            <input
-                                type="text"
-                                placeholder="Nhập voucher..."
-                                value={voucherCode}
-                                onChange={(e) => setVoucherCode(e.target.value)}
-                                className="flex-1 rounded-xl border border-zinc-300 px-4 py-3 outline-none focus:border-red-500"
-                            />
-
-                            <button
-                                onClick={applyVoucher}
-                                className="rounded-xl bg-red-500 px-5 font-bold text-white hover:bg-red-600"
-                            >
-                                Áp dụng
-                            </button>
-
-                        </div>
-
-                        {selectedVoucher && (
-
-                            <div className="mt-4 rounded-xl border border-green-300 bg-green-50 p-4">
-
-                                <div className="font-bold text-green-700">
-                                    {selectedVoucher.magiamgia}
+                                    <span className="text-xs text-zinc-400">
+                                        Chọn 1 trong {availableVouchers.length} mã
+                                    </span>
                                 </div>
 
-                                <div className="mt-1 text-sm text-zinc-600">
-                                    {selectedVoucher.mota}
+                                <div className="space-y-3">
+                                    {displayedVouchers.map((voucher, index) => {
+                                        const voucherDiscount =
+                                            calculateVoucherDiscount(voucher);
+
+                                        const isSelected =
+                                            selectedVoucher?.mavoucher === voucher.mavoucher;
+
+                                        return (
+                                            <div
+                                                key={voucher.mavoucher}
+                                                className={`rounded-xl border p-3 transition ${isSelected
+                                                    ? "border-green-400 bg-green-50"
+                                                    : "border-zinc-200 bg-zinc-50"
+                                                    }`}
+                                            >
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <div className="min-w-0">
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            <p
+                                                                className={`font-black ${isSelected
+                                                                    ? "text-green-700"
+                                                                    : "text-red-500"
+                                                                    }`}
+                                                            >
+                                                                {voucher.magiamgia}
+                                                            </p>
+
+                                                            {index === 0 && (
+                                                                <span className="rounded-full bg-yellow-100 px-2 py-1 text-[10px] font-bold uppercase text-yellow-700">
+                                                                    Tốt nhất
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        <p className="mt-1 text-sm text-zinc-600">
+                                                            {voucher.loaikhuyenmai === "percent"
+                                                                ? `Giảm ${voucher.giatrigiam}%`
+                                                                : `Giảm ${formatPrice(
+                                                                    Number(voucher.giatrigiam) || 0
+                                                                )}`}
+                                                        </p>
+
+                                                        <p className="mt-1 text-xs font-semibold text-green-600">
+                                                            Tiết kiệm{" "}
+                                                            {formatPrice(voucherDiscount)}
+                                                        </p>
+                                                    </div>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            applySuggestedVoucher(voucher)
+                                                        }
+                                                        disabled={isSelected}
+                                                        className={`shrink-0 rounded-lg px-3 py-2 text-xs font-bold transition ${isSelected
+                                                            ? "cursor-default bg-green-600 text-white"
+                                                            : "bg-red-500 text-white hover:bg-red-600"
+                                                            }`}
+                                                    >
+                                                        {isSelected
+                                                            ? "✓ Đang dùng"
+                                                            : selectedVoucher
+                                                                ? "Chọn mã này"
+                                                                : "Áp dụng"}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
 
+                                {availableVouchers.length > 1 && (
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setShowAllVouchers(
+                                                (previousValue) => !previousValue
+                                            )
+                                        }
+                                        className="mt-3 w-full text-sm font-bold text-red-500 transition hover:text-red-600"
+                                    >
+                                        {showAllVouchers
+                                            ? "Thu gọn"
+                                            : `Xem thêm ${availableVouchers.length - 1
+                                            } voucher`}
+                                    </button>
+                                )}
+
+                                {selectedVoucher && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedVoucher(null)}
+                                        className="mt-3 w-full text-sm font-bold text-zinc-500 transition hover:text-red-500"
+                                    >
+                                        Bỏ voucher đang áp dụng
+                                    </button>
+                                )}
                             </div>
-
                         )}
-
                         <div className="my-8 border-t border-dashed border-zinc-300" />
 
                         <div className="flex items-center justify-between">
