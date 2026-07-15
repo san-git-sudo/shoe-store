@@ -12,6 +12,7 @@ import SearchPage from "./pages/SearchPage.jsx";
 import Profile from "./pages/Profile";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
+import AdminRoute from "./components/AdminRoute";
 import "./App.css";
 function App() {
   return (
@@ -119,7 +120,14 @@ function App() {
           }
         />
 
-        <Route path="/admin" element={<AdminLayout />} />
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminLayout />
+            </AdminRoute>
+          }
+        />
       </Routes>
     </>
   );

@@ -231,7 +231,7 @@ function Auth() {
                 navigate("/profile");
             }
         } catch (err) {
-            alert(err.response?.data?.message || "Đăng nhập thất bại.");
+            alert(err.response?.data?.message || "Đăng nhập thất bại.Tài khoản hoặc mật khẩu không chính xác");
         } finally {
             setLoading(false);
         }
