@@ -8,7 +8,9 @@ const menu = [
     { key: "revenue", label: "Doanh thu" },
     { key: "vouchers", label: "Khuyến mãi" },
     { key: "sizes", label: "Size giày" },
-    { key: "colors", label: "Màu sắc" }
+    { key: "colors", label: "Màu sắc" },
+    { key: "cates", label: "Danh mục" },
+    { key: "brands", label: "Hãng" }
 ];
 
 function AdminSidebar({ activePage, setActivePage }) {
@@ -33,16 +35,20 @@ function AdminSidebar({ activePage, setActivePage }) {
     };
 
     return (
-        <aside className="fixed left-0 top-0 h-screen w-72 border-r border-[#D6D3D1] bg-[#ECE7E1] px-6 py-6">
-            <h1 className="text-3xl font-black italic text-[#18181B]">
-                KICK<span className="text-[#DC2626]">ZONE</span>
-            </h1>
+        <aside className="fixed left-0 top-0 flex h-screen w-72 flex-col border-r border-[#D6D3D1] bg-[#ECE7E1] px-6 py-6">
+            {/* Logo luôn cố định ở phía trên */}
+            <div className="shrink-0">
+                <h1 className="text-3xl font-black italic text-[#18181B]">
+                    KICK<span className="text-[#DC2626]">ZONE</span>
+                </h1>
 
-            <p className="mt-1 text-sm text-zinc-500">
-                Luxury Admin Panel
-            </p>
+                <p className="mt-1 text-sm text-zinc-500">
+                    Luxury Admin Panel
+                </p>
+            </div>
 
-            <nav className="mt-10 space-y-2">
+            {/* Chỉ phần menu được cuộn */}
+            <nav className="mt-8 min-h-0 flex-1 space-y-2 overflow-y-auto pr-2 pb-4">
                 {menu.map((item) => (
                     <button
                         key={item.key}
@@ -58,7 +64,8 @@ function AdminSidebar({ activePage, setActivePage }) {
                 ))}
             </nav>
 
-            <div className="absolute bottom-6 left-6 right-6">
+            {/* Nút đăng xuất luôn cố định ở phía dưới */}
+            <div className="shrink-0 border-t border-[#D6D3D1] pt-4">
                 <button
                     type="button"
                     onClick={handleLogout}

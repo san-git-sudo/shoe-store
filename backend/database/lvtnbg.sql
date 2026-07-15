@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Máy chủ: 127.0.0.1:3306
--- Thời gian đã tạo: Th7 14, 2026 lúc 06:35 PM
+-- Thời gian đã tạo: Th7 15, 2026 lúc 04:17 PM
 -- Phiên bản máy phục vụ: 8.3.0
 -- Phiên bản PHP: 8.2.18
 
@@ -41,16 +41,13 @@ CREATE TABLE IF NOT EXISTS `bienthesanpham` (
   KEY `masanpham` (`masanpham`),
   KEY `makichthuoc` (`makichthuoc`),
   KEY `mamausac` (`mamausac`)
-) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=39 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Đang đổ dữ liệu cho bảng `bienthesanpham`
 --
 
 INSERT INTO `bienthesanpham` (`mabienthe`, `masanpham`, `makichthuoc`, `mamausac`, `soluongton`, `giaban`, `ngaytao`, `trangthaihoatdongbtsp`) VALUES
-(1, 1, 3, 1, 25, 3290000.00, '2026-06-22 08:59:02', 'hoạt động'),
-(2, 1, 4, 1, 20, 3290000.00, '2026-06-22 08:59:02', 'hoạt động'),
-(3, 1, 5, 2, 18, 3290000.00, '2026-06-22 08:59:02', 'hoạt động'),
 (4, 2, 3, 2, 15, 3990000.00, '2026-06-22 08:59:02', 'hoạt động'),
 (5, 2, 4, 2, 22, 3990000.00, '2026-06-22 08:59:02', 'hoạt động'),
 (6, 2, 5, 1, 17, 3990000.00, '2026-06-22 08:59:02', 'hoạt động'),
@@ -72,7 +69,13 @@ INSERT INTO `bienthesanpham` (`mabienthe`, `masanpham`, `makichthuoc`, `mamausac
 (22, 9, 6, 2, 12, 2890000.00, '2026-06-22 08:59:02', 'hoạt động'),
 (23, 10, 4, 1, 20, 3190000.00, '2026-06-22 08:59:02', 'hoạt động'),
 (24, 10, 5, 3, 18, 3190000.00, '2026-06-22 08:59:02', 'hoạt động'),
-(25, 10, 6, 6, 10, 3190000.00, '2026-06-22 08:59:02', 'hoạt động');
+(25, 10, 6, 6, 10, 3190000.00, '2026-06-22 08:59:02', 'hoạt động'),
+(26, 31, 1, 1, 50, 2500000.00, '2026-07-15 05:50:59', 'hoạt động'),
+(34, 36, 1, 5, 50, 500000.00, '2026-07-15 07:16:06', 'hoạt động'),
+(35, 36, 2, 1, 50, 500000.00, '2026-07-15 07:16:06', 'hoạt động'),
+(36, 36, 1, 3, 50, 500000.00, '2026-07-15 07:16:06', 'hoạt động'),
+(37, 37, 1, 1, 50, 500000.00, '2026-07-15 08:00:58', 'hoạt động'),
+(38, 37, 1, 2, 50, 500000.00, '2026-07-15 08:00:58', 'hoạt động');
 
 -- --------------------------------------------------------
 
@@ -110,8 +113,9 @@ CREATE TABLE IF NOT EXISTS `danhmuc` (
   `tendanhmuc` varchar(250) NOT NULL,
   `ngaytao` timestamp NOT NULL,
   `gioitinh` enum('Nam','Nữ') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
-  PRIMARY KEY (`madanhmuc`)
-) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  PRIMARY KEY (`madanhmuc`),
+  UNIQUE KEY `uq_danhmuc_tendanhmuc` (`tendanhmuc`)
+) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Đang đổ dữ liệu cho bảng `danhmuc`
@@ -170,8 +174,9 @@ CREATE TABLE IF NOT EXISTS `hang` (
   `mota` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `trangthai` enum('hoạt động','không hoạt động') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'hoạt động',
   `ngaytao` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`mahang`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  PRIMARY KEY (`mahang`),
+  UNIQUE KEY `uq_hang_tenhang` (`tenhang`)
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Đang đổ dữ liệu cho bảng `hang`
@@ -201,7 +206,7 @@ CREATE TABLE IF NOT EXISTS `hinhanh` (
   `stt` int DEFAULT NULL,
   PRIMARY KEY (`mahinhanh`),
   KEY `mabienthe` (`mabienthe`)
-) ENGINE=InnoDB AUTO_INCREMENT=79 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=102 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Đang đổ dữ liệu cho bảng `hinhanh`
@@ -277,15 +282,17 @@ INSERT INTO `hinhanh` (`mahinhanh`, `mabienthe`, `urlhinhanh`, `ngaytao`, `stt`)
 (67, 6, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1783786075/shoe-store/products/lyd09zfzg3yfdxe7vbdm.webp', '2026-07-11 16:08:31', 1),
 (68, 6, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1783786075/shoe-store/products/gt3s6vtaqqds1wrnonkh.webp', '2026-07-11 16:08:31', 2),
 (69, 6, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1783786075/shoe-store/products/tx70idon6c25rntqjklb.webp', '2026-07-11 16:08:31', 3),
-(70, 1, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1783786188/shoe-store/products/dkhvtkwgermx6gqeapll.webp', '2026-07-11 16:10:37', 1),
-(71, 1, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1783786189/shoe-store/products/doxvu8oshuhe4ekrxgfs.webp', '2026-07-11 16:10:37', 2),
-(72, 1, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1783786189/shoe-store/products/ug1estyo25uh0axibpih.webp', '2026-07-11 16:10:37', 3),
-(73, 2, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1783786188/shoe-store/products/dkhvtkwgermx6gqeapll.webp', '2026-07-11 16:11:06', 1),
-(74, 2, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1783786189/shoe-store/products/doxvu8oshuhe4ekrxgfs.webp', '2026-07-11 16:11:06', 2),
-(75, 2, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1783786189/shoe-store/products/ug1estyo25uh0axibpih.webp', '2026-07-11 16:11:06', 3),
-(76, 3, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1783786329/shoe-store/products/t68kiiorqdwq2svqdz20.webp', '2026-07-11 16:12:46', 1),
-(77, 3, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1783786329/shoe-store/products/xxdycfnklbwogizhs1bn.webp', '2026-07-11 16:12:46', 2),
-(78, 3, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1783786330/shoe-store/products/afoiroygadlk0ewu5yms.webp', '2026-07-11 16:12:46', 3);
+(79, 26, 'https://res.cloudinary.com/.../af1-black-side.jpg', '2026-07-15 05:50:59', 1),
+(80, 26, 'https://res.cloudinary.com/.../af1-black-back.jpg', '2026-07-15 05:50:59', 2),
+(93, 36, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1784099765/shoe-store/products/jgtpuqykqmdgop2d1ygz.png', '2026-07-15 07:16:06', 1),
+(94, 36, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1784099765/shoe-store/products/vw2hbhnuwdulrbkqq1tx.png', '2026-07-15 07:16:06', 2),
+(95, 36, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1784099764/shoe-store/products/mhh3x3ehortty6hudhx4.png', '2026-07-15 07:16:06', 3),
+(96, 37, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1784102453/shoe-store/products/opjglv31xkiyd6mcdwfh.webp', '2026-07-15 08:00:58', 1),
+(97, 37, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1784102454/shoe-store/products/lhljeiarz9nz06bob61m.webp', '2026-07-15 08:00:58', 2),
+(98, 37, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1784102454/shoe-store/products/ak4t9dxozxm4m9g43wji.webp', '2026-07-15 08:00:58', 3),
+(99, 38, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1784102456/shoe-store/products/prplpdefiqu3yd2wp0tz.png', '2026-07-15 08:00:58', 1),
+(100, 38, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1784102455/shoe-store/products/x69gkuxzsvqog2yybd4n.png', '2026-07-15 08:00:58', 2),
+(101, 38, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1784102455/shoe-store/products/ied9nzomidqplracx6cu.png', '2026-07-15 08:00:58', 3);
 
 -- --------------------------------------------------------
 
@@ -321,8 +328,9 @@ CREATE TABLE IF NOT EXISTS `kichthuoc` (
   `tenkichthuoc` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `mota` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `ngaytao` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`makichthuoc`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  PRIMARY KEY (`makichthuoc`),
+  UNIQUE KEY `uq_kichthuoc_tenkichthuoc` (`tenkichthuoc`)
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Đang đổ dữ liệu cho bảng `kichthuoc`
@@ -335,7 +343,8 @@ INSERT INTO `kichthuoc` (`makichthuoc`, `tenkichthuoc`, `mota`, `ngaytao`) VALUE
 (4, '41', 'Size giày 41', '2026-06-22 08:49:45'),
 (5, '42', 'Size giày 42', '2026-06-22 08:49:45'),
 (6, '43', 'Size giày 43', '2026-06-22 08:49:45'),
-(7, '44', 'Size giày 44', '2026-06-22 08:49:45');
+(7, '44', 'Size giày 44', '2026-06-22 08:49:45'),
+(9, '44.5', 'Size giày 44.5', '2026-07-15 14:38:39');
 
 -- --------------------------------------------------------
 
@@ -350,8 +359,10 @@ CREATE TABLE IF NOT EXISTS `mausac` (
   `mota` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `hexcode` varchar(250) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `ngaytao` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`mamausac`)
-) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  PRIMARY KEY (`mamausac`),
+  UNIQUE KEY `uq_mausac_tenmausac` (`tenmausac`),
+  UNIQUE KEY `uq_mausac_hexcode` (`hexcode`)
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Đang đổ dữ liệu cho bảng `mausac`
@@ -363,7 +374,8 @@ INSERT INTO `mausac` (`mamausac`, `tenmausac`, `mota`, `hexcode`, `ngaytao`) VAL
 (3, 'Xám', 'Màu xám trung tính', '#808080', '2026-06-22 08:48:21'),
 (4, 'Xanh Dương', 'Màu xanh dương năng động', '#1E90FF', '2026-06-22 08:48:21'),
 (5, 'Đỏ', 'Màu đỏ nổi bật', '#FF0000', '2026-06-22 08:48:21'),
-(6, 'Be', 'Màu be thời trang và thanh lịch', '#F5F5DC', '2026-06-22 08:48:21');
+(6, 'Be', 'Màu be thời trang và thanh lịch', '#F5F5DC', '2026-06-22 08:48:21'),
+(18, 'Xanh lá cây', 'Màu xanh lá cây trẻ trung , năng động', '#14E12C', '2026-07-15 14:55:36');
 
 -- --------------------------------------------------------
 
@@ -424,14 +436,13 @@ CREATE TABLE IF NOT EXISTS `sanpham` (
   PRIMARY KEY (`masanpham`),
   KEY `madanhmuc` (`madanhmuc`),
   KEY `mahang` (`mahang`)
-) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Đang đổ dữ liệu cho bảng `sanpham`
 --
 
 INSERT INTO `sanpham` (`masanpham`, `tensanpham`, `mahang`, `mota`, `chatlieu`, `kieudang`, `baoquan`, `ngaytao`, `ngaycapnhat`, `madanhmuc`, `anhdaidien`) VALUES
-(1, 'Nike Air Zoom Pegasus 41', 1, 'Giày chạy bộ êm ái dành cho luyện tập hằng ngày', 'Vải Mesh', 'Chạy bộ', 'Vệ sinh bằng khăn mềm, tránh ngâm nước', '2026-07-11 12:57:39', '2026-06-22 08:43:52', 1, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1783774423/shoe-store/products/k4zjxb9nlrvvhzxvkz6l.jpg'),
 (2, 'Adidas Ultraboost Light', 2, 'Giày chạy bộ cao cấp với đệm siêu nhẹ', 'Primeknit', 'Chạy bộ', 'Bảo quản nơi khô ráo', '2026-07-11 13:04:37', '2026-06-22 08:43:52', 1, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1783775058/shoe-store/products/icpk6nmqon4vddivkau5.webp'),
 (3, 'Puma RS-X Heritage', 3, 'Giày sneaker phong cách trẻ trung', 'Da tổng hợp', 'Sneaker', 'Tránh tiếp xúc nhiệt độ cao', '2026-07-11 13:06:43', '2026-06-22 08:43:52', 2, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1783775164/shoe-store/products/zwe82y37thtllm5mnhwm.webp'),
 (4, 'New Balance 530', 4, 'Giày sneaker thời trang được yêu thích', 'Mesh + Da', 'Sneaker', 'Vệ sinh định kỳ bằng bàn chải mềm', '2026-07-11 13:07:52', '2026-06-22 08:43:52', 2, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1783775258/shoe-store/products/lgumgufs3ltvhnwifdjy.webp'),
@@ -440,7 +451,10 @@ INSERT INTO `sanpham` (`masanpham`, `tensanpham`, `mahang`, `mota`, `chatlieu`, 
 (7, 'Converse Chuck Taylor 70', 5, 'Giày cổ cao phong cách cổ điển', 'Canvas', 'Lifestyle', 'Giặt nhẹ bằng tay', '2026-07-11 13:12:19', '2026-06-22 08:43:52', 4, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1783775527/shoe-store/products/ptnvybiapr9kc5dbqxhh.webp'),
 (8, 'Vans Old Skool', 6, 'Giày thời trang đường phố', 'Canvas', 'Lifestyle', 'Tránh phơi trực tiếp dưới nắng gắt', '2026-07-11 13:13:05', '2026-06-22 08:43:52', 4, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1783775577/shoe-store/products/zuxctxodjprhel5wrzsd.webp'),
 (9, 'Adidas Dropset Trainer', 2, 'Giày tập gym ổn định và chắc chắn', 'Mesh', 'Training', 'Bảo quản nơi khô ráo', '2026-07-11 13:14:02', '2026-06-22 08:43:52', 5, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1783775633/shoe-store/products/swwdzext3isfrxbacl4m.jpg'),
-(10, 'Nike Metcon 9', 1, 'Giày tập luyện đa năng cho phòng gym', 'Flyknit', 'Training', 'Vệ sinh bằng khăn ẩm', '2026-07-11 13:15:13', '2026-06-22 08:43:52', 5, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1783775706/shoe-store/products/zgxfeb04oh2knlqqfg1d.webp');
+(10, 'Nike Metcon 9', 1, 'Giày tập luyện đa năng cho phòng gym', 'Flyknit', 'Training', 'Vệ sinh bằng khăn ẩm', '2026-07-11 13:15:13', '2026-06-22 08:43:52', 5, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1783775706/shoe-store/products/zgxfeb04oh2knlqqfg1d.webp'),
+(31, 'Nike Air Force 1 Black', 1, 'Giày thể thao Nike Air Force 1 chính hãng, thiết kế sang trọng.', 'Da cao cấp', 'Cổ thấp', 'Tránh tiếp xúc nước trực tiếp, lau bằng khăn ẩm.', '2026-07-15 06:19:20', NULL, 1, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1783775058/shoe-store/products/icpk6nmqon4vddivkau5.webp'),
+(36, 'PUMA VIP', 3, 'PUMA VIP', 'Cotton 100%', 'nhỏ gọn', 'giặt nhẹ, để nơi thoáng mát', '0000-00-00 00:00:00', NULL, 3, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1784099667/shoe-store/products/dwazkpwg8junpdnuaryk.webp'),
+(37, 'New KickZone', 7, 'New KickZone phù hợp cho mọi lứa tuổi', 'Cotton 100%', 'nhỏ gọn', 'giặt nhẹ, để nơi thoáng mát', '0000-00-00 00:00:00', NULL, 3, 'https://res.cloudinary.com/dii9or3qb/image/upload/v1784102452/shoe-store/products/hodbe09svfs4n1o3qxyp.webp');
 
 -- --------------------------------------------------------
 
@@ -466,19 +480,21 @@ CREATE TABLE IF NOT EXISTS `voucher` (
   `ngaytao` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `mahang` int DEFAULT NULL,
   PRIMARY KEY (`mavoucher`),
+  UNIQUE KEY `uq_voucher_magiamgia` (`magiamgia`),
   KEY `masanpham` (`masanpham`),
   KEY `madanhmuc` (`madanhmuc`),
   KEY `fk_voucher_hang` (`mahang`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Đang đổ dữ liệu cho bảng `voucher`
 --
 
 INSERT INTO `voucher` (`mavoucher`, `magiamgia`, `mota`, `loaikhuyenmai`, `giatrigiam`, `giantoida`, `dontoithieu`, `apdungtoanbo`, `masanpham`, `madanhmuc`, `ngaybatdau`, `ngayketthuc`, `trangthai`, `ngaytao`, `mahang`) VALUES
-(4, 'WELCOME10', 'Giảm 10% cho toàn bộ sản phẩm', 'percent', 10, 200000, 500000, 1, NULL, NULL, '2026-06-22 08:56:32', '2026-07-22 08:56:32', 'hoạt động', '2026-06-22 08:56:32', NULL),
 (5, 'NIKE15', 'Giảm 15% cho toàn bộ sản phẩm Nike', 'percent', 15, 300000, 1000000, 0, NULL, NULL, '2026-06-22 08:56:32', '2026-07-12 08:56:32', 'hoạt động', '2026-06-22 08:56:32', 1),
-(6, 'ADIDAS200K', 'Giảm trực tiếp 200.000đ cho sản phẩm Adidas', 'fixed', 200000, NULL, 2000000, 0, NULL, NULL, '2026-06-22 08:56:32', '2026-07-07 08:56:32', 'hoạt động', '2026-06-22 08:56:32', 2);
+(6, 'ADIDAS200K', 'Giảm trực tiếp 200.000đ cho sản phẩm Adidas', 'fixed', 200000, NULL, 2000000, 0, NULL, NULL, '2026-06-22 08:56:32', '2026-07-07 08:56:32', 'hoạt động', '2026-06-22 08:56:32', 2),
+(7, 'SALE10', 'Giảm 10% toàn bộ cửa hàng', 'percent', 10, 100000, 500000, 1, NULL, NULL, '2026-07-14 17:00:00', '2026-08-15 16:59:59', 'hoạt động', '2026-07-15 13:18:12', NULL),
+(9, 'SALE30', 'Giảm giá 30% cho các sản phẩm là giày bóng rổ nam', 'percent', 30, 500000, 500000, 0, NULL, 3, '2026-07-15 13:33:00', '2026-12-18 13:33:00', 'hoạt động', '2026-07-15 13:34:05', NULL);
 
 -- --------------------------------------------------------
 

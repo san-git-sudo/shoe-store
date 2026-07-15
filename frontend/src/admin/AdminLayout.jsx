@@ -8,6 +8,8 @@ import AdminRevenue from "./AdminRevenue.jsx";
 import AdminVouchers from "./AdminVouchers.jsx";
 import AdminSizes from "./AdminSizes.jsx";
 import AdminColors from "./AdminColors.jsx";
+import AdminCates from "./AdminCates.jsx";
+import AdminBrands from "./AdminBrands.jsx";
 
 function AdminLayout() {
     const [activePage, setActivePage] = useState("dashboard");
@@ -21,6 +23,8 @@ function AdminLayout() {
         customers: <AdminCustomers />,
         revenue: <AdminRevenue />,
         vouchers: <AdminVouchers />,
+        cates: <AdminCates />,
+        brands: <AdminBrands />,
     };
 
     return (
