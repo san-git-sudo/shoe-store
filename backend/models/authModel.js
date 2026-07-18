@@ -274,4 +274,84 @@ Auth.updateProfile = async (id, user) => {
 
     return result.affectedRows;
 };
+// ======================================================
+// ADMIN: LẤY DANH SÁCH KHÁCH HÀNG
+// Chỉ lấy tài khoản có vai trò client.
+// Không lấy mật khẩu, reset token và dữ liệu nhạy cảm.
+// ======================================================
+Auth.getAdminCustomers = async () => {
+    const [rows] = await db.query(
+        `
+        SELECT
+            manguoidung,
+            email,
+            hoten,
+            sodienthoai,
+            diachi,
+            vaitro,
+            trangthai,
+            ngaytao,
+            ngaycapnhat
+        FROM nguoidung
+        WHERE vaitro = 'client'
+        ORDER BY manguoidung DESC
+        `
+    );
+
+    return rows;
+};
+
+// ======================================================
+// ADMIN: LẤY CHI TIẾT MỘT KHÁCH HÀNG
+// Chỉ lấy tài khoản client.
+// ======================================================
+Auth.getAdminCustomerById = async (customerId) => {
+    const [rows] = await db.query(
+        `
+        SELECT
+            manguoidung,
+            email,
+            hoten,
+            sodienthoai,
+            diachi,
+            vaitro,
+            trangthai,
+            ngaytao,
+            ngaycapnhat
+        FROM nguoidung
+        WHERE manguoidung = ?
+          AND vaitro = 'client'
+        LIMIT 1
+        `,
+        [customerId]
+    );
+
+    return rows[0] || null;
+};
+
+// ======================================================
+// ADMIN: CẬP NHẬT TRẠNG THÁI KHÁCH HÀNG
+//
+// Database của anh chỉ chấp nhận:
+// - hoạt động
+// - không hoạt động
+// ======================================================
+Auth.updateCustomerStatus = async (
+    customerId,
+    status
+) => {
+    const [result] = await db.query(
+        `
+        UPDATE nguoidung
+        SET
+            trangthai = ?,
+            ngaycapnhat = CURRENT_TIMESTAMP
+        WHERE manguoidung = ?
+          AND vaitro = 'client'
+        `,
+        [status, customerId]
+    );
+
+    return result.affectedRows;
+};
 module.exports = Auth;

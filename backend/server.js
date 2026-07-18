@@ -13,6 +13,9 @@ const uploadRoutes = require("./routes/uploadRoutes");//file upload
 const sizeRoutes = require("./routes/sizeRoutes");//Size
 const colorRoutes = require("./routes/colorRoutes");//Color
 const authRoutes = require("./routes/authRoutes");//đăng nhập, đăng ký, quên mật khẩu
+const orderRoutes = require(
+    "./routes/orderRoutes"
+);//Đơn hàng (admin )
 const app = express();
 
 app.use(cors());
@@ -34,6 +37,8 @@ app.use("/api/sizes", sizeRoutes);
 app.use("/api/colors", colorRoutes);
 //đăng nhập, đăng ký, quên mật khẩu
 app.use("/api/auth", authRoutes);
+//Đơn hàng
+app.use("/api/orders", orderRoutes);
 app.listen(PORT, () => {
     console.log(`Server đang chạy tại http://localhost:${PORT}`);
 });

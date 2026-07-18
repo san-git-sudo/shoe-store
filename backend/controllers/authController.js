@@ -589,20 +589,238 @@ const resetPassword = async (req, res) => {
     }
 
 };
+// ======================================================
+// ADMIN: LẤY DANH SÁCH KHÁCH HÀNG
+//
+// GET /api/auth/admin/customers
+// ======================================================
+const getAdminCustomers = async (req, res) => {
+    try {
+        const customers =
+            await Auth.getAdminCustomers();
+
+        return res.status(200).json({
+            success: true,
+            message:
+                "Lấy danh sách khách hàng thành công.",
+            data: customers.map((customer) => ({
+                ...customer,
+                manguoidung: Number(
+                    customer.manguoidung
+                )
+            }))
+        });
+    } catch (error) {
+        console.error(
+            "Get admin customers error:",
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
+            message:
+                "Không thể lấy danh sách khách hàng."
+        });
+    }
+};
+// ======================================================
+// ADMIN: LẤY CHI TIẾT KHÁCH HÀNG
+//
+// GET /api/auth/admin/customers/:id
+// ======================================================
+const getAdminCustomerById = async (req, res) => {
+    try {
+        const customerId = Number(req.params.id);
+
+        // ID phải là số nguyên dương
+        if (
+            !Number.isInteger(customerId) ||
+            customerId <= 0
+        ) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Mã khách hàng không hợp lệ."
+            });
+        }
+
+        const customer =
+            await Auth.getAdminCustomerById(
+                customerId
+            );
+
+        if (!customer) {
+            return res.status(404).json({
+                success: false,
+                message:
+                    "Không tìm thấy khách hàng."
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message:
+                "Lấy chi tiết khách hàng thành công.",
+            data: {
+                ...customer,
+                manguoidung: Number(
+                    customer.manguoidung
+                )
+            }
+        });
+    } catch (error) {
+        console.error(
+            "Get admin customer by ID error:",
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
+            message:
+                "Không thể lấy chi tiết khách hàng."
+        });
+    }
+};
+// ======================================================
+// ADMIN: CHUYỂN TRẠNG THÁI KHÁCH HÀNG
+//
+// PUT /api/auth/admin/customers/:id/status
+//
+// Body:
+// {
+//     "trangthai": "hoạt động"
+// }
+//
+// hoặc:
+//
+// {
+//     "trangthai": "không hoạt động"
+// }
+// ======================================================
+const updateAdminCustomerStatus = async (
+    req,
+    res
+) => {
+    try {
+        const customerId = Number(req.params.id);
+
+        const status = String(
+            req.body.trangthai || ""
+        ).trim();
+
+        // ID phải là số nguyên dương
+        if (
+            !Number.isInteger(customerId) ||
+            customerId <= 0
+        ) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Mã khách hàng không hợp lệ."
+            });
+        }
+
+        // Đồng bộ đúng với enum trong database
+        const allowedStatuses = [
+            "hoạt động",
+            "không hoạt động"
+        ];
+
+        if (!allowedStatuses.includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Trạng thái khách hàng chỉ được là hoạt động hoặc không hoạt động."
+            });
+        }
+
+        // Chỉ tìm tài khoản có vai trò client
+        const customer =
+            await Auth.getAdminCustomerById(
+                customerId
+            );
+
+        if (!customer) {
+            return res.status(404).json({
+                success: false,
+                message:
+                    "Không tìm thấy khách hàng."
+            });
+        }
+
+        // Không cập nhật thừa nếu trạng thái giống hiện tại
+        if (customer.trangthai === status) {
+            return res.status(200).json({
+                success: true,
+                message:
+                    status === "hoạt động"
+                        ? "Tài khoản khách hàng đang hoạt động."
+                        : "Tài khoản khách hàng đang không hoạt động.",
+                data: {
+                    ...customer,
+                    manguoidung: Number(
+                        customer.manguoidung
+                    )
+                }
+            });
+        }
+
+        const affectedRows =
+            await Auth.updateCustomerStatus(
+                customerId,
+                status
+            );
+
+        if (affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message:
+                    "Không tìm thấy khách hàng để cập nhật."
+            });
+        }
+
+        const updatedCustomer =
+            await Auth.getAdminCustomerById(
+                customerId
+            );
+
+        return res.status(200).json({
+            success: true,
+            message:
+                status === "hoạt động"
+                    ? `Đã kích hoạt tài khoản "${customer.hoten}".`
+                    : `Đã chuyển tài khoản "${customer.hoten}" sang không hoạt động.`,
+            data: {
+                ...updatedCustomer,
+                manguoidung: Number(
+                    updatedCustomer.manguoidung
+                )
+            }
+        });
+    } catch (error) {
+        console.error(
+            "Update customer status error:",
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
+            message:
+                "Không thể cập nhật trạng thái khách hàng."
+        });
+    }
+};
 module.exports = {
-
     register,
-
     verifyRegisterOTP,
-
     login,
-
     forgotPassword,
-
     resetPassword,
-
     getProfile,
+    updateProfile,
 
-    updateProfile
-
+    // Các chức năng quản lý khách hàng dành cho admin
+    getAdminCustomers,
+    getAdminCustomerById,
+    updateAdminCustomerStatus
 };

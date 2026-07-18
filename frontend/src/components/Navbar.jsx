@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { getCart } from "../utils/cart";
 
 function SearchIcon() {
     return (
@@ -61,11 +62,48 @@ function Navbar() {
     const [categories, setCategories] = useState([]);
     const [brands, setBrands] = useState([]);
     const [keyword, setKeyword] = useState("");
+    const [cartCount, setCartCount] = useState(0);
     const navigate = useNavigate();
     useEffect(() => {
-
         fetchNavbarData();
 
+        const updateCartCount = () => {
+            const cart = getCart();
+
+            const totalQuantity = Array.isArray(cart)
+                ? cart.reduce(
+                    (sum, item) =>
+                        sum + (Number(item.quantity) || 0),
+                    0
+                )
+                : 0;
+
+            setCartCount(totalQuantity);
+        };
+
+        updateCartCount();
+
+        window.addEventListener(
+            "cart-updated",
+            updateCartCount
+        );
+
+        window.addEventListener(
+            "storage",
+            updateCartCount
+        );
+
+        return () => {
+            window.removeEventListener(
+                "cart-updated",
+                updateCartCount
+            );
+
+            window.removeEventListener(
+                "storage",
+                updateCartCount
+            );
+        };
     }, []);
 
     const fetchNavbarData = async () => {
@@ -248,9 +286,12 @@ function Navbar() {
                     </Link>
                     <Link to="/cart" className="relative transition hover:text-red-500">
                         <BagIcon />
-                        <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
-                            2
-                        </span>
+
+                        {cartCount > 0 && (
+                            <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
+                                {cartCount > 99 ? "99+" : cartCount}
+                            </span>
+                        )}
                     </Link>
                 </div>
             </div>

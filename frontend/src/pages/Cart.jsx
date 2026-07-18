@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
     getCart,
@@ -12,14 +13,22 @@ function formatPrice(value) {
 
 function Cart() {
 
+    const navigate = useNavigate();
+
     const [cartItems, setCartItems] = useState([]);
     const [vouchers, setVouchers] = useState([]);
     const [selectedVoucher, setSelectedVoucher] = useState(null);
 
     // Hiển thị toàn bộ voucher hoặc chỉ voucher tốt nhất
     const [showAllVouchers, setShowAllVouchers] = useState(false);
+    const refreshCart = () => {
+        const latestCart = getCart();
+        setCartItems(Array.isArray(latestCart) ? latestCart : []);
+        window.dispatchEvent(new Event("cart-updated"));
+    };
+
     useEffect(() => {
-        setCartItems(getCart());
+        refreshCart();
         fetchVouchers();
     }, []);
 
@@ -56,7 +65,13 @@ function Cart() {
 
     }
 
-    const total = subtotal - discount;
+    discount = Math.min(discount, subtotal);
+    const total = Math.max(subtotal - discount, 0);
+
+    const totalCartQuantity = cartItems.reduce(
+        (sum, item) => sum + (Number(item.quantity) || 0),
+        0
+    );
     // ======================================================
     // Tính số tiền thực tế mà một voucher có thể giảm
     // Dùng để sắp xếp và hiển thị số tiền khách tiết kiệm
@@ -140,77 +155,118 @@ function Cart() {
         <main className="min-h-screen bg-[#F3F0EA] px-6 pb-20 pt-32 text-[#18181B]">
             <section className="mx-auto max-w-7xl">
                 <div className="mb-8 text-sm text-zinc-500">
-                    <span className="text-red-500">Trang chủ</span> / Giỏ hàng (
-                    {cartItems.length})
+                    <button
+                        type="button"
+                        onClick={() => navigate("/")}
+                        className="text-red-500 hover:underline"
+                    >
+                        Trang chủ
+                    </button>{" "}
+                    / Giỏ hàng ({totalCartQuantity})
                 </div>
 
                 <h1 className="text-center text-4xl font-black">Giỏ hàng</h1>
 
                 <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_380px]">
-                    <div className="space-y-5">
-                        {cartItems.map((item) => (
-                            <div
-                                key={item.mabienthe}
-                                className="grid items-center gap-6 rounded-[2rem] border border-[#D6D3D1] bg-white p-6 shadow-sm md:grid-cols-[40px_120px_1fr_140px_150px]"
-                            >
+                    <div>
+                        {cartItems.length === 0 ? (
+                            <div className="flex min-h-[430px] flex-col items-center justify-center rounded-[2rem] border border-[#D6D3D1] bg-white px-6 py-16 text-center shadow-sm">
+                                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-red-50 text-5xl">
+                                    🛒
+                                </div>
+                                <p className="mt-7 text-xs font-black uppercase tracking-[0.28em] text-[#DC2626]">
+                                    KICKZONE
+                                </p>
+                                <h2 className="mt-3 text-3xl font-black">
+                                    Giỏ hàng đang trống
+                                </h2>
+                                <p className="mt-3 max-w-md leading-7 text-zinc-500">
+                                    Bạn chưa thêm sản phẩm nào vào giỏ. Hãy khám phá những mẫu giày phù hợp với phong cách của mình nhé.
+                                </p>
                                 <button
-                                    className="text-2xl text-zinc-400 hover:text-red-500"
-                                    onClick={() => {
-                                        removeCartItem(item.mabienthe);
-                                        setCartItems(getCart());
-                                    }}
+                                    type="button"
+                                    onClick={() => navigate("/")}
+                                    className="mt-8 rounded-xl bg-[#DC2626] px-8 py-4 font-bold text-white transition hover:bg-red-700"
                                 >
-                                    ×
+                                    Khám phá sản phẩm
                                 </button>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="space-y-5">
+                                    {cartItems.map((item) => (
+                                        <div
+                                            key={item.mabienthe}
+                                            className="grid items-center gap-6 rounded-[2rem] border border-[#D6D3D1] bg-white p-6 shadow-sm md:grid-cols-[40px_120px_1fr_140px_150px]"
+                                        >
+                                            <button
+                                                className="text-2xl text-zinc-400 hover:text-red-500"
+                                                onClick={() => {
+                                                    removeCartItem(item.mabienthe);
+                                                    setSelectedVoucher(null);
+                                                    setShowAllVouchers(false);
+                                                    refreshCart();
+                                                }}
+                                            >
+                                                ×
+                                            </button>
 
-                                <div className="h-24 w-24 overflow-hidden rounded-xl bg-zinc-100">
-                                    <img
-                                        src={item.image}
-                                        alt={item.name}
-                                        className="h-full w-full object-cover"
+                                            <div className="h-24 w-24 overflow-hidden rounded-xl bg-zinc-100">
+                                                <img
+                                                    src={item.image}
+                                                    alt={item.name}
+                                                    className="h-full w-full object-cover"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <h3 className="text-lg font-bold">{item.name}</h3>
+                                                <p className="mt-2 text-sm text-zinc-500">
+                                                    Size: {item.size} / Màu: {item.color}
+                                                </p>
+                                            </div>
+
+                                            <p className="text-lg font-bold text-red-500">
+                                                {formatPrice(item.price)}
+                                            </p>
+
+                                            <div className="flex h-11 w-36 items-center justify-between rounded-lg border border-zinc-300">
+                                                <button
+                                                    onClick={() => {
+                                                        if (Number(item.quantity) <= 1) return;
+                                                        updateQuantity(item.mabienthe, Number(item.quantity) - 1);
+                                                        setSelectedVoucher(null);
+                                                        setShowAllVouchers(false);
+                                                        refreshCart();
+                                                    }}
+                                                >
+                                                    -
+                                                </button>
+                                                <span className="font-bold">{item.quantity}</span>
+                                                <button
+                                                    onClick={() => {
+                                                        updateQuantity(item.mabienthe, Number(item.quantity) + 1);
+                                                        setSelectedVoucher(null);
+                                                        setShowAllVouchers(false);
+                                                        refreshCart();
+                                                    }}
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="mt-10">
+                                    <label className="text-xl font-bold">Ghi chú đơn hàng</label>
+                                    <textarea
+                                        className="mt-4 h-28 w-full resize-none rounded-2xl border border-[#D6D3D1] bg-white p-4 outline-none focus:border-red-500"
+                                        placeholder="Nhập ghi chú cho đơn hàng..."
                                     />
                                 </div>
-
-                                <div>
-                                    <h3 className="text-lg font-bold">{item.name}</h3>
-                                    <p className="mt-2 text-sm text-zinc-500">
-                                        Size: {item.size} / Màu: {item.color}
-                                    </p>
-                                </div>
-
-                                <p className="text-lg font-bold text-red-500">
-                                    {formatPrice(item.price)}
-                                </p>
-
-                                <div className="flex h-11 w-36 items-center justify-between rounded-lg border border-zinc-300">
-                                    <button
-                                        onClick={() => {
-                                            updateQuantity(item.mabienthe, item.quantity - 1);
-                                            setCartItems(getCart());
-                                        }}
-                                    >
-                                        -
-                                    </button>
-                                    <span className="font-bold">{item.quantity}</span>
-                                    <button
-                                        onClick={() => {
-                                            updateQuantity(item.mabienthe, item.quantity + 1);
-                                            setCartItems(getCart());
-                                        }}
-                                    >
-                                        +
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-
-                        <div className="mt-10">
-                            <label className="text-xl font-bold">Ghi chú đơn hàng</label>
-                            <textarea
-                                className="mt-4 h-28 w-full resize-none rounded-2xl border border-[#D6D3D1] bg-white p-4 outline-none focus:border-red-500"
-                                placeholder="Nhập ghi chú cho đơn hàng..."
-                            />
-                        </div>
+                            </>
+                        )}
                     </div>
 
                     <aside className="h-fit rounded-[2rem] border border-[#D6D3D1] bg-white p-8 shadow-lg">
@@ -246,7 +302,7 @@ function Cart() {
                         {/* ======================================================
     Mỗi đơn hàng chỉ áp dụng một voucher
 ====================================================== */}
-                        {availableVouchers.length > 0 && (
+                        {cartItems.length > 0 && availableVouchers.length > 0 && (
                             <div>
                                 <div className="mb-3 flex items-center justify-between">
                                     <div className="flex items-center gap-2">
@@ -376,21 +432,28 @@ function Cart() {
 
                         </div>
 
-                        <button className="mt-8 w-full rounded-2xl bg-[#18181B] py-4 text-lg font-bold text-white transition hover:bg-red-500">
-                            Thanh Toán
+                        <button
+                            type="button"
+                            disabled={cartItems.length === 0}
+                            className={`mt-8 w-full rounded-2xl py-4 text-lg font-bold transition ${cartItems.length === 0
+                                ? "cursor-not-allowed bg-zinc-200 text-zinc-400"
+                                : "bg-[#18181B] text-white hover:bg-red-500"
+                                }`}
+                        >
+                            {cartItems.length === 0 ? "Chưa có sản phẩm" : "Thanh toán"}
                         </button>
 
-                        <div className="mt-5 grid grid-cols-2 gap-3">
+                        {cartItems.length > 0 && (
+                            <div className="mt-5 grid grid-cols-2 gap-3">
+                                <button className="rounded-xl border border-zinc-300 bg-white py-3 font-bold text-blue-500 transition hover:border-blue-500">
+                                    ZaloPay
+                                </button>
 
-                            <button className="rounded-xl border border-zinc-300 bg-white py-3 font-bold text-blue-500 transition hover:border-blue-500">
-                                ZaloPay
-                            </button>
-
-                            <button className="rounded-xl border border-zinc-300 bg-white py-3 font-bold text-green-600 transition hover:border-green-600">
-                                COD
-                            </button>
-
-                        </div>
+                                <button className="rounded-xl border border-zinc-300 bg-white py-3 font-bold text-green-600 transition hover:border-green-600">
+                                    COD
+                                </button>
+                            </div>
+                        )}
 
                     </aside>
                 </div>

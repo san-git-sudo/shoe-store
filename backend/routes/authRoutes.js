@@ -1,7 +1,10 @@
 const express = require("express");
 const router = express.Router();
 
-const { verifyToken } = require("../middleware/authMiddleware");
+const {
+    verifyToken,
+    isAdmin
+} = require("../middleware/authMiddleware");
 const authController = require("../controllers/authController");
 
 // ======================================================
@@ -40,5 +43,32 @@ router.get("/profile", verifyToken, authController.getProfile);
 
 // Cập nhật thông tin người đang đăng nhập
 router.put("/profile", verifyToken, authController.updateProfile);
+// ======================================================
+// QUẢN LÝ KHÁCH HÀNG - CHỈ ADMIN
+// ======================================================
+
+// Lấy danh sách khách hàng
+router.get(
+    "/admin/customers",
+    verifyToken,
+    isAdmin,
+    authController.getAdminCustomers
+);
+
+// Lấy chi tiết một khách hàng
+router.get(
+    "/admin/customers/:id",
+    verifyToken,
+    isAdmin,
+    authController.getAdminCustomerById
+);
+
+// Chuyển trạng thái hoạt động / không hoạt động
+router.put(
+    "/admin/customers/:id/status",
+    verifyToken,
+    isAdmin,
+    authController.updateAdminCustomerStatus
+);
 
 module.exports = router;
