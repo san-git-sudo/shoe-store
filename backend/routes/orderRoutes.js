@@ -14,7 +14,17 @@ const {
 // API KHÁCH HÀNG ĐÃ ĐĂNG NHẬP
 // Chỉ cần token hợp lệ, không yêu cầu quyền admin
 // ======================================================
-
+// ======================================================
+// KHÁCH HÀNG: TẠO ĐƠN HÀNG COD
+//
+// POST /api/orders/checkout/cod
+// Chỉ cần đăng nhập, không yêu cầu quyền admin.
+// ======================================================
+router.post(
+    "/checkout/cod",
+    verifyToken,
+    orderController.checkoutCOD
+);
 // Lấy lịch sử đơn hàng của người đang đăng nhập
 router.get(
     "/my-orders",

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { getCart } from "../utils/cart";
+import { getWishlist } from "../utils/wishlist";
 
 function SearchIcon() {
     return (
@@ -63,6 +64,7 @@ function Navbar() {
     const [brands, setBrands] = useState([]);
     const [keyword, setKeyword] = useState("");
     const [cartCount, setCartCount] = useState(0);
+    const [wishlistCount, setWishlistCount] = useState(0);
     const navigate = useNavigate();
     useEffect(() => {
         fetchNavbarData();
@@ -81,7 +83,23 @@ function Navbar() {
             setCartCount(totalQuantity);
         };
 
+        const updateWishlistCount = () => {
+            const wishlist = getWishlist();
+
+            setWishlistCount(
+                Array.isArray(wishlist)
+                    ? wishlist.length
+                    : 0
+            );
+        };
+
+        const handleStorageChange = () => {
+            updateCartCount();
+            updateWishlistCount();
+        };
+
         updateCartCount();
+        updateWishlistCount();
 
         window.addEventListener(
             "cart-updated",
@@ -89,8 +107,13 @@ function Navbar() {
         );
 
         window.addEventListener(
+            "wishlist-updated",
+            updateWishlistCount
+        );
+
+        window.addEventListener(
             "storage",
-            updateCartCount
+            handleStorageChange
         );
 
         return () => {
@@ -100,8 +123,13 @@ function Navbar() {
             );
 
             window.removeEventListener(
+                "wishlist-updated",
+                updateWishlistCount
+            );
+
+            window.removeEventListener(
                 "storage",
-                updateCartCount
+                handleStorageChange
             );
         };
     }, []);
@@ -274,9 +302,21 @@ function Navbar() {
                     <Link title="Tài khoản" to="/login" className="transition hover:text-red-500">
                         <UserIcon />
                     </Link>
-                    <button className="transition hover:text-red-500">
+                    <Link
+                        title="Sản phẩm yêu thích"
+                        to="/wishlist"
+                        className="relative transition hover:text-red-500"
+                    >
                         <HeartIcon />
-                    </button>
+
+                        {wishlistCount > 0 && (
+                            <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
+                                {wishlistCount > 99
+                                    ? "99+"
+                                    : wishlistCount}
+                            </span>
+                        )}
+                    </Link>
                     <Link
                         title="Lịch sử đặt hàng"
                         to="/orders"

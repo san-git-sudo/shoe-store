@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
+import axios from "axios";
 
 import {
     getCart,
     updateQuantity,
     removeCartItem
 } from "../utils/cart";
-import axios from "axios";
+
 function formatPrice(value) {
     return value.toLocaleString("vi-VN") + "đ";
 }
@@ -18,6 +20,56 @@ function Cart() {
     const [cartItems, setCartItems] = useState([]);
     const [vouchers, setVouchers] = useState([]);
     const [selectedVoucher, setSelectedVoucher] = useState(null);
+    const [orderNote, setOrderNote] = useState("");
+    const handleGoToCheckout = async () => {
+        // Không cho thanh toán khi giỏ trống
+        if (cartItems.length === 0) {
+            return Swal.fire({
+                title: "Giỏ hàng đang trống!",
+                text:
+                    "Vui lòng thêm sản phẩm trước khi thanh toán.",
+                icon: "warning",
+                confirmButtonColor: "#DC2626"
+            });
+        }
+
+        const token =
+            localStorage.getItem("token") ||
+            localStorage.getItem("accessToken");
+
+        // Bắt buộc đăng nhập trước khi checkout
+        if (!token) {
+            const result = await Swal.fire({
+                title: "Vui lòng đăng nhập",
+                text:
+                    "Bạn cần đăng nhập để tiếp tục thanh toán.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#DC2626",
+                cancelButtonColor: "#71717A",
+                confirmButtonText: "Đăng nhập",
+                cancelButtonText: "Để sau"
+            });
+
+            if (result.isConfirmed) {
+                navigate("/auth", {
+                    state: {
+                        from: "/checkout"
+                    }
+                });
+            }
+
+            return;
+        }
+
+        // Có token thì chuyển sang Checkout
+        navigate("/checkout", {
+            state: {
+                selectedVoucher,
+                orderNote: orderNote.trim()
+            }
+        });
+    };
 
     // Hiển thị toàn bộ voucher hoặc chỉ voucher tốt nhất
     const [showAllVouchers, setShowAllVouchers] = useState(false);
@@ -261,9 +313,18 @@ function Cart() {
                                 <div className="mt-10">
                                     <label className="text-xl font-bold">Ghi chú đơn hàng</label>
                                     <textarea
+                                        value={orderNote}
+                                        onChange={(event) =>
+                                            setOrderNote(event.target.value)
+                                        }
+                                        maxLength={500}
                                         className="mt-4 h-28 w-full resize-none rounded-2xl border border-[#D6D3D1] bg-white p-4 outline-none focus:border-red-500"
                                         placeholder="Nhập ghi chú cho đơn hàng..."
                                     />
+
+                                    <p className="mt-2 text-right text-xs text-zinc-400">
+                                        {orderNote.length}/500
+                                    </p>
                                 </div>
                             </>
                         )}
@@ -435,25 +496,17 @@ function Cart() {
                         <button
                             type="button"
                             disabled={cartItems.length === 0}
+                            onClick={handleGoToCheckout}
                             className={`mt-8 w-full rounded-2xl py-4 text-lg font-bold transition ${cartItems.length === 0
                                 ? "cursor-not-allowed bg-zinc-200 text-zinc-400"
                                 : "bg-[#18181B] text-white hover:bg-red-500"
                                 }`}
                         >
-                            {cartItems.length === 0 ? "Chưa có sản phẩm" : "Thanh toán"}
+                            {cartItems.length === 0
+                                ? "Chưa có sản phẩm"
+                                : "Thanh toán"}
                         </button>
 
-                        {cartItems.length > 0 && (
-                            <div className="mt-5 grid grid-cols-2 gap-3">
-                                <button className="rounded-xl border border-zinc-300 bg-white py-3 font-bold text-blue-500 transition hover:border-blue-500">
-                                    ZaloPay
-                                </button>
-
-                                <button className="rounded-xl border border-zinc-300 bg-white py-3 font-bold text-green-600 transition hover:border-green-600">
-                                    COD
-                                </button>
-                            </div>
-                        )}
 
                     </aside>
                 </div>

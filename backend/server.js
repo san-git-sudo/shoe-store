@@ -16,6 +16,9 @@ const authRoutes = require("./routes/authRoutes");//đăng nhập, đăng ký, q
 const orderRoutes = require(
     "./routes/orderRoutes"
 );//Đơn hàng (admin )
+const zalopayRoutes = require(
+    "./routes/zalopayRoutes"
+);//Thanh toán zalopay
 const app = express();
 
 app.use(cors());
@@ -39,6 +42,11 @@ app.use("/api/colors", colorRoutes);
 app.use("/api/auth", authRoutes);
 //Đơn hàng
 app.use("/api/orders", orderRoutes);
+//Thanh toán zalopay
+app.use(
+    "/api/zalopay",
+    zalopayRoutes
+);
 app.listen(PORT, () => {
     console.log(`Server đang chạy tại http://localhost:${PORT}`);
 });

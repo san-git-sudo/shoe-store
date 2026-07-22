@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import { addToCart } from "../utils/cart";
+import {
+    isInWishlist,
+    toggleWishlist
+} from "../utils/wishlist";
 
 function ProductDetail() {
     const { id } = useParams();
@@ -12,21 +16,118 @@ function ProductDetail() {
     const [loading, setLoading] = useState(true);
     const [vouchers, setVouchers] = useState([]);
     const [copiedVoucher, setCopiedVoucher] = useState(null);
+    const [isFavorite, setIsFavorite] = useState(false);
+    const isVariantAvailable = (
+        variant
+    ) => {
+        if (!variant) {
+            return false;
+        }
+
+        const hasStock =
+            Number(
+                variant.soluongton
+            ) > 0;
+
+        const isActive =
+            !variant.trangthaihoatdongbtsp ||
+            variant.trangthaihoatdongbtsp ===
+            "hoạt động";
+
+        return hasStock && isActive;
+    };
+
     const handleAddToCart = () => {
+        if (!product || !selectedVariant) {
+            return alert(
+                "Vui lòng chọn biến thể sản phẩm."
+            );
+        }
+
+        if (
+            !isVariantAvailable(
+                selectedVariant
+            )
+        ) {
+            return alert(
+                "Biến thể này hiện đã hết hàng hoặc ngừng bán."
+            );
+        }
 
         addToCart({
-            mabienthe: selectedVariant.mabienthe,
-            masanpham: product.masanpham,
-            name: product.tensanpham,
+            mabienthe:
+                selectedVariant.mabienthe,
+
+            masanpham:
+                product.masanpham,
+
+            name:
+                product.tensanpham,
+
             image:
-                selectedVariant.hinhanh?.[0]?.urlhinhanh ||
+                selectedVariant.hinhanh?.[0]
+                    ?.urlhinhanh ||
                 product.anhdaidien,
-            price: selectedVariant.giaban,
-            size: selectedVariant.kichthuoc.tenkichthuoc,
-            color: selectedVariant.mausac.tenmausac,
+
+            price:
+                Number(
+                    selectedVariant.giaban
+                ),
+
+            size:
+                selectedVariant.kichthuoc
+                    ?.tenkichthuoc ||
+                "",
+
+            color:
+                selectedVariant.mausac
+                    ?.tenmausac ||
+                ""
         });
 
+        window.dispatchEvent(
+            new Event("cart-updated")
+        );
+
         alert("Đã thêm vào giỏ hàng");
+    };
+
+    const handleToggleWishlist = () => {
+        if (!product?.masanpham) {
+            return;
+        }
+
+        try {
+            const result =
+                toggleWishlist({
+                    masanpham:
+                        product.masanpham,
+
+                    tensanpham:
+                        product.tensanpham,
+
+                    anhdaidien:
+                        selectedVariant
+                            ?.hinhanh?.[0]
+                            ?.urlhinhanh ||
+                        product.anhdaidien,
+
+                    giaban:
+                        Number(
+                            selectedVariant
+                                ?.giaban
+                        ) || 0
+                });
+
+            setIsFavorite(
+                result.isFavorite
+            );
+        } catch (error) {
+            console.error(
+                "Lỗi cập nhật yêu thích:",
+                error
+            );
+        }
     };
     const handleCopyVoucher = async (code) => {
         try {
@@ -82,6 +183,12 @@ function ProductDetail() {
 
                 setProduct(productData);
 
+                setIsFavorite(
+                    isInWishlist(
+                        productData.masanpham
+                    )
+                );
+
                 if (productData.variants.length > 0) {
 
                     const firstVariant = productData.variants[0];
@@ -131,6 +238,20 @@ function ProductDetail() {
             item => item.mausac.mamausac === selectedColor?.mamausac
         )
         : [];
+    const selectedVariantAvailable =
+        isVariantAvailable(
+            selectedVariant
+        );
+
+    const productHasStock =
+        Array.isArray(product?.variants) &&
+        product.variants.some(
+            (variant) =>
+                isVariantAvailable(
+                    variant
+                )
+        );
+
     if (loading) {
         return (
             <div className="pt-40 text-center text-white">
@@ -229,14 +350,38 @@ ${selectedImage === image.urlhinhanh
 
                                 <button
                                     key={variant.mabienthe}
-                                    onClick={() => changeVariant(variant)}
-                                    className={`rounded-xl py-3 font-bold transition
-            ${selectedVariant?.mabienthe === variant.mabienthe
-                                            ? "bg-red-500 text-white border-red-500"
-                                            : "border border-zinc-700 hover:border-red-500"
+                                    type="button"
+                                    onClick={() =>
+                                        changeVariant(
+                                            variant
+                                        )
+                                    }
+                                    disabled={
+                                        !isVariantAvailable(
+                                            variant
+                                        )
+                                    }
+                                    title={
+                                        isVariantAvailable(
+                                            variant
+                                        )
+                                            ? `Size ${variant.kichthuoc.tenkichthuoc}`
+                                            : "Size này đã hết hàng"
+                                    }
+                                    className={`rounded-xl border py-3 font-bold transition ${!isVariantAvailable(
+                                        variant
+                                    )
+                                            ? "cursor-not-allowed border-zinc-800 bg-zinc-900 text-zinc-600 line-through"
+                                            : selectedVariant?.mabienthe ===
+                                                variant.mabienthe
+                                                ? "border-red-500 bg-red-500 text-white"
+                                                : "border-zinc-700 hover:border-red-500"
                                         }`}
                                 >
-                                    {variant.kichthuoc.tenkichthuoc}
+                                    {
+                                        variant.kichthuoc
+                                            .tenkichthuoc
+                                    }
                                 </button>
 
                             ))}
@@ -252,12 +397,26 @@ ${selectedImage === image.urlhinhanh
                                 <button
                                     key={color.mamausac}
                                     onClick={() => {
-                                        const firstSize = product.variants.find(
-                                            item => item.mausac.mamausac === color.mamausac
-                                        );
+                                        const colorVariants =
+                                            product.variants.filter(
+                                                (item) =>
+                                                    item.mausac.mamausac ===
+                                                    color.mamausac
+                                            );
+
+                                        const firstSize =
+                                            colorVariants.find(
+                                                (item) =>
+                                                    isVariantAvailable(
+                                                        item
+                                                    )
+                                            ) ||
+                                            colorVariants[0];
 
                                         if (firstSize) {
-                                            changeVariant(firstSize);
+                                            changeVariant(
+                                                firstSize
+                                            );
                                         }
                                     }}
                                     className={`h-10 w-10 rounded-full border-2 transition ${selectedColor?.mamausac === color.mamausac
@@ -276,13 +435,68 @@ ${selectedImage === image.urlhinhanh
 
                     <div className="mt-10 flex flex-col gap-4 sm:flex-row">
                         <button
-                            onClick={handleAddToCart}
-                            className="rounded-2xl bg-red-500 px-10 py-4 ..."
+                            type="button"
+                            onClick={
+                                handleAddToCart
+                            }
+                            disabled={
+                                !selectedVariantAvailable
+                            }
+                            className={`flex-1 rounded-2xl px-10 py-4 font-bold transition ${selectedVariantAvailable
+                                    ? "bg-red-500 text-white hover:bg-red-600"
+                                    : "cursor-not-allowed bg-zinc-800 text-zinc-500"
+                                }`}
                         >
-                            Thêm vào giỏ hàng
+                            {selectedVariantAvailable
+                                ? "Thêm vào giỏ hàng"
+                                : productHasStock
+                                    ? "Biến thể đã hết hàng"
+                                    : "Sản phẩm đã hết hàng"}
                         </button>
-                        <button className="rounded-2xl border border-zinc-700 px-10 py-4 font-black uppercase text-white transition hover:border-red-500 hover:text-red-500">
-                            Mua ngay
+
+                        <button
+                            type="button"
+                            onClick={
+                                handleToggleWishlist
+                            }
+                            title={
+                                isFavorite
+                                    ? "Bỏ khỏi yêu thích"
+                                    : "Thêm vào yêu thích"
+                            }
+                            aria-label={
+                                isFavorite
+                                    ? "Bỏ khỏi yêu thích"
+                                    : "Thêm vào yêu thích"
+                            }
+                            className={`flex h-14 w-full items-center justify-center gap-2 rounded-2xl border px-5 font-bold transition sm:w-16 sm:px-0 ${isFavorite
+                                    ? "border-red-500 bg-red-500 text-white"
+                                    : "border-zinc-700 text-white hover:border-red-500 hover:text-red-500"
+                                }`}
+                        >
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill={
+                                    isFavorite
+                                        ? "currentColor"
+                                        : "none"
+                                }
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                className="h-6 w-6"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
+                                />
+                            </svg>
+
+                            <span className="sm:hidden">
+                                {isFavorite
+                                    ? "Đã yêu thích"
+                                    : "Yêu thích"}
+                            </span>
                         </button>
                     </div>
                     {/* Voucher áp dụng */}

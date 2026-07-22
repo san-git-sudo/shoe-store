@@ -556,7 +556,7 @@ Order.getLowStockProducts = async (
 
         LEFT JOIN bienthesanpham bt
             ON sp.masanpham = bt.masanpham
-            AND bt.trangthaihoatdongbtsp = 1
+            AND bt.trangthaihoatdongbtsp = 'hoạt động'
 
         GROUP BY
             sp.masanpham,
@@ -810,5 +810,984 @@ Order.getMyOrderById = async (
 
     return rows[0] || null;
 };
+// ======================================================
+// TẠO LỖI NGHIỆP VỤ CHO CHECKOUT
+// Controller sẽ sử dụng statusCode để trả response phù hợp.
+// ======================================================
+const createCheckoutError = (
+    message,
+    statusCode = 400
+) => {
+    const error = new Error(message);
 
+    error.statusCode = statusCode;
+
+    return error;
+};
+
+// ======================================================
+// KHÁCH HÀNG: TẠO ĐƠN HÀNG COD
+//
+// Toàn bộ quá trình chạy trong transaction:
+//
+// 1. Kiểm tra tài khoản.
+// 2. Khóa biến thể bằng FOR UPDATE.
+// 3. Kiểm tra tồn kho.
+// 4. Kiểm tra voucher.
+// 5. Tạo đơn.
+// 6. Tạo chi tiết đơn.
+// 7. Trừ tồn kho.
+// ======================================================
+const createCheckoutOrder = async ({
+    customerId,
+    tennguoinhan,
+    sodienthoai,
+    diachigiao,
+    ghichu = null,
+    mavoucher = null,
+    items,
+    paymentMethod
+}) => {
+    const allowedPaymentMethods = [
+        "COD",
+        "ZaloPay"
+    ];
+
+    if (
+        !allowedPaymentMethods.includes(
+            paymentMethod
+        )
+    ) {
+        throw createCheckoutError(
+            "Phương thức thanh toán không hợp lệ"
+        );
+    }
+    const connection =
+        await db.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        // ==================================================
+        // 1. KIỂM TRA TÀI KHOẢN KHÁCH HÀNG
+        // ==================================================
+        const [userRows] =
+            await connection.query(
+                `
+                SELECT
+                    manguoidung,
+                    vaitro,
+                    trangthai
+                FROM nguoidung
+                WHERE manguoidung = ?
+                LIMIT 1
+                FOR UPDATE
+                `,
+                [customerId]
+            );
+
+        const user = userRows[0];
+
+        if (!user) {
+            throw createCheckoutError(
+                "Không tìm thấy tài khoản người dùng",
+                404
+            );
+        }
+
+        if (user.vaitro !== "client") {
+            throw createCheckoutError(
+                "Tài khoản không hợp lệ để đặt hàng",
+                403
+            );
+        }
+
+        if (user.trangthai !== "hoạt động") {
+            throw createCheckoutError(
+                "Tài khoản hiện không hoạt động",
+                403
+            );
+        }
+
+        // ==================================================
+        // 2. LẤY VÀ KHÓA TOÀN BỘ BIẾN THỂ
+        // ==================================================
+        const variantIds = items.map(
+            (item) => item.mabienthe
+        );
+
+        const placeholders = variantIds
+            .map(() => "?")
+            .join(", ");
+
+        const [variantRows] =
+            await connection.query(
+                `
+                SELECT
+                    bt.mabienthe,
+                    bt.masanpham,
+                    bt.soluongton,
+                    bt.giaban,
+                    bt.trangthaihoatdongbtsp,
+
+                    sp.tensanpham,
+                    sp.madanhmuc,
+                    sp.mahang,
+
+                    kt.tenkichthuoc,
+                    ms.tenmausac
+
+                FROM bienthesanpham bt
+
+                INNER JOIN sanpham sp
+                    ON bt.masanpham = sp.masanpham
+
+                LEFT JOIN kichthuoc kt
+                    ON bt.makichthuoc =
+                       kt.makichthuoc
+
+                LEFT JOIN mausac ms
+                    ON bt.mamausac =
+                       ms.mamausac
+
+                WHERE bt.mabienthe IN (
+                    ${placeholders}
+                )
+
+                FOR UPDATE
+                `,
+                variantIds
+            );
+
+        if (
+            variantRows.length !==
+            variantIds.length
+        ) {
+            throw createCheckoutError(
+                "Có sản phẩm trong giỏ hàng không còn tồn tại",
+                404
+            );
+        }
+
+        const variantMap = new Map(
+            variantRows.map((variant) => [
+                Number(variant.mabienthe),
+                variant
+            ])
+        );
+
+        // ==================================================
+        // 3. KIỂM TRA TỪNG SẢN PHẨM VÀ TÍNH TẠM TÍNH
+        // ==================================================
+        let subtotal = 0;
+
+        const orderItems = items.map(
+            (item) => {
+                const variant =
+                    variantMap.get(
+                        item.mabienthe
+                    );
+
+                if (!variant) {
+                    throw createCheckoutError(
+                        `Không tìm thấy biến thể ${item.mabienthe}`,
+                        404
+                    );
+                }
+
+                if (
+                    variant.trangthaihoatdongbtsp !==
+                    "hoạt động"
+                ) {
+                    throw createCheckoutError(
+                        `Sản phẩm "${variant.tensanpham}" hiện không còn bán`,
+                        409
+                    );
+                }
+
+                const stock = Number(
+                    variant.soluongton || 0
+                );
+
+                if (item.soluong > stock) {
+                    throw createCheckoutError(
+                        `Sản phẩm "${variant.tensanpham}" chỉ còn ${stock} sản phẩm trong kho`,
+                        409
+                    );
+                }
+
+                const originalPrice = Number(
+                    variant.giaban || 0
+                );
+
+                if (
+                    !Number.isFinite(
+                        originalPrice
+                    ) ||
+                    originalPrice < 0
+                ) {
+                    throw createCheckoutError(
+                        `Giá của sản phẩm "${variant.tensanpham}" không hợp lệ`,
+                        409
+                    );
+                }
+
+                const lineTotal =
+                    originalPrice *
+                    item.soluong;
+
+                subtotal += lineTotal;
+
+                return {
+                    mabienthe:
+                        Number(
+                            variant.mabienthe
+                        ),
+
+                    masanpham:
+                        Number(
+                            variant.masanpham
+                        ),
+
+                    madanhmuc:
+                        variant.madanhmuc !==
+                            null
+                            ? Number(
+                                variant.madanhmuc
+                            )
+                            : null,
+
+                    mahang:
+                        variant.mahang !== null
+                            ? Number(
+                                variant.mahang
+                            )
+                            : null,
+
+                    tensanpham:
+                        variant.tensanpham,
+
+                    kichthuoc:
+                        variant.tenkichthuoc ||
+                        null,
+
+                    mausac:
+                        variant.tenmausac ||
+                        null,
+
+                    soluong:
+                        item.soluong,
+
+                    giagoc:
+                        originalPrice,
+
+                    giakhuyenmai: 0,
+
+                    giasaukhuyenmai:
+                        originalPrice,
+
+                    thanhtien:
+                        lineTotal
+                };
+            }
+        );
+
+        if (subtotal <= 0) {
+            throw createCheckoutError(
+                "Tổng tiền đơn hàng không hợp lệ"
+            );
+        }
+
+        // ==================================================
+        // 4. KIỂM TRA VOUCHER VÀ TÍNH GIẢM GIÁ
+        // ==================================================
+        let validVoucherId = null;
+        let discount = 0;
+
+        if (mavoucher !== null) {
+            const [voucherRows] =
+                await connection.query(
+                    `
+                    SELECT
+                        mavoucher,
+                        magiamgia,
+                        loaikhuyenmai,
+                        giatrigiam,
+                        giantoida,
+                        dontoithieu,
+                        apdungtoanbo,
+                        masanpham,
+                        madanhmuc,
+                        mahang,
+                        ngaybatdau,
+                        ngayketthuc,
+                        trangthai
+
+                    FROM voucher
+
+                    WHERE mavoucher = ?
+
+                    LIMIT 1
+                    FOR UPDATE
+                    `,
+                    [mavoucher]
+                );
+
+            const voucher =
+                voucherRows[0];
+
+            if (!voucher) {
+                throw createCheckoutError(
+                    "Voucher không tồn tại",
+                    404
+                );
+            }
+
+            if (
+                voucher.trangthai !==
+                "hoạt động"
+            ) {
+                throw createCheckoutError(
+                    "Voucher hiện không hoạt động",
+                    409
+                );
+            }
+
+            const now = new Date();
+
+            if (
+                voucher.ngaybatdau &&
+                new Date(
+                    voucher.ngaybatdau
+                ) > now
+            ) {
+                throw createCheckoutError(
+                    "Voucher chưa đến thời gian sử dụng",
+                    409
+                );
+            }
+
+            if (
+                voucher.ngayketthuc &&
+                new Date(
+                    voucher.ngayketthuc
+                ) < now
+            ) {
+                throw createCheckoutError(
+                    "Voucher đã hết hạn",
+                    409
+                );
+            }
+
+            const minimumOrder = Number(
+                voucher.dontoithieu || 0
+            );
+
+            if (subtotal < minimumOrder) {
+                throw createCheckoutError(
+                    `Đơn hàng phải đạt tối thiểu ${minimumOrder.toLocaleString(
+                        "vi-VN"
+                    )}đ để sử dụng voucher`,
+                    409
+                );
+            }
+
+            /*
+                Tính tổng tiền đủ điều kiện giảm:
+
+                - apdungtoanbo = 1:
+                  áp dụng toàn bộ đơn.
+
+                - Nếu không:
+                  áp dụng cho sản phẩm, danh mục
+                  hoặc hãng được cấu hình.
+            */
+            let eligibleSubtotal = 0;
+
+            if (
+                Number(
+                    voucher.apdungtoanbo
+                ) === 1
+            ) {
+                eligibleSubtotal = subtotal;
+            } else {
+                eligibleSubtotal =
+                    orderItems.reduce(
+                        (sum, item) => {
+                            const matchesProduct =
+                                voucher.masanpham !==
+                                null &&
+                                Number(
+                                    voucher.masanpham
+                                ) ===
+                                item.masanpham;
+
+                            const matchesCategory =
+                                voucher.madanhmuc !==
+                                null &&
+                                Number(
+                                    voucher.madanhmuc
+                                ) ===
+                                item.madanhmuc;
+
+                            const matchesBrand =
+                                voucher.mahang !==
+                                null &&
+                                Number(
+                                    voucher.mahang
+                                ) ===
+                                item.mahang;
+
+                            return (
+                                matchesProduct ||
+                                    matchesCategory ||
+                                    matchesBrand
+                                    ? sum +
+                                    item.thanhtien
+                                    : sum
+                            );
+                        },
+                        0
+                    );
+            }
+
+            if (eligibleSubtotal <= 0) {
+                throw createCheckoutError(
+                    "Voucher không áp dụng cho các sản phẩm trong đơn hàng",
+                    409
+                );
+            }
+
+            const discountValue = Number(
+                voucher.giatrigiam || 0
+            );
+
+            if (
+                voucher.loaikhuyenmai ===
+                "percent"
+            ) {
+                discount =
+                    (eligibleSubtotal *
+                        discountValue) /
+                    100;
+
+                const maximumDiscount =
+                    Number(
+                        voucher.giantoida ||
+                        0
+                    );
+
+                if (
+                    maximumDiscount > 0 &&
+                    discount >
+                    maximumDiscount
+                ) {
+                    discount =
+                        maximumDiscount;
+                }
+            } else if (
+                voucher.loaikhuyenmai ===
+                "fixed"
+            ) {
+                discount =
+                    discountValue;
+            } else {
+                throw createCheckoutError(
+                    "Loại voucher không hợp lệ",
+                    409
+                );
+            }
+
+            discount = Math.min(
+                discount,
+                eligibleSubtotal,
+                subtotal
+            );
+
+            validVoucherId = Number(
+                voucher.mavoucher
+            );
+        }
+
+        const shippingFee = 0;
+
+        const totalPayment = Math.max(
+            subtotal -
+            discount +
+            shippingFee,
+            0
+        );
+
+        // ==================================================
+        // 5. TẠO ĐƠN HÀNG COD
+        // ==================================================
+        const [orderResult] =
+            await connection.query(
+                `
+                INSERT INTO donhang
+                (
+                    manguoidung,
+                    mavoucher,
+                    tennguoinhan,
+                    sodienthoai,
+                    diachigiao,
+                    hinhthucthanhtoan,
+                    dathanhtoan,
+                    ngaythanhtoan,
+                    tongtien,
+                    phivanchuyen,
+                    tongthanhtoan,
+                    trangthai,
+                    ghichu
+                )
+                VALUES
+                (
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    0,
+                    NULL,
+                    ?,
+                    ?,
+                    ?,
+                    'chờ xác nhận',
+                    ?
+                )
+                `,
+                [
+                    customerId,
+                    validVoucherId,
+                    tennguoinhan,
+                    sodienthoai,
+                    diachigiao,
+                    paymentMethod,
+                    subtotal,
+                    shippingFee,
+                    totalPayment,
+                    ghichu
+                ]
+            );
+
+        const orderId =
+            orderResult.insertId;
+
+        // ==================================================
+        // 6. TẠO CHI TIẾT VÀ TRỪ TỒN KHO
+        // ==================================================
+        for (const item of orderItems) {
+            await connection.query(
+                `
+                INSERT INTO chitietdonhang
+                (
+                    madonhang,
+                    mabienthe,
+                    tensanpham,
+                    kichthuoc,
+                    mausac,
+                    soluong,
+                    giagoc,
+                    loaikhuyenmai,
+                    giakhuyenmai,
+                    giasaukhuyenmai,
+                    ghichu
+                )
+                VALUES
+                (
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    NULL,
+                    0,
+                    ?,
+                    NULL
+                )
+                `,
+                [
+                    orderId,
+                    item.mabienthe,
+                    item.tensanpham,
+                    item.kichthuoc,
+                    item.mausac,
+                    item.soluong,
+                    item.giagoc,
+                    item.giasaukhuyenmai
+                ]
+            );
+
+            const [stockResult] =
+                await connection.query(
+                    `
+                    UPDATE bienthesanpham
+                    SET soluongton =
+                        soluongton - ?
+                    WHERE mabienthe = ?
+                      AND trangthaihoatdongbtsp = 'hoạt động'
+                      AND soluongton >= ?
+                    `,
+                    [
+                        item.soluong,
+                        item.mabienthe,
+                        item.soluong
+                    ]
+                );
+
+            /*
+                Dù đã SELECT FOR UPDATE,
+                vẫn kiểm tra affectedRows để an toàn.
+            */
+            if (
+                stockResult.affectedRows !==
+                1
+            ) {
+                throw createCheckoutError(
+                    `Sản phẩm "${item.tensanpham}" không đủ tồn kho`,
+                    409
+                );
+            }
+        }
+
+        await connection.commit();
+
+        return {
+            madonhang: orderId,
+            manguoidung: customerId,
+            mavoucher: validVoucherId,
+
+            hinhthucthanhtoan:
+                paymentMethod,
+
+            dathanhtoan: 0,
+
+            tongtien: subtotal,
+            giamgia: discount,
+            phivanchuyen: shippingFee,
+            tongthanhtoan: totalPayment,
+
+            trangthai: "chờ xác nhận",
+
+            /*
+                Dùng để tạo trường item gửi ZaloPay.
+                Đây là dữ liệu đã lấy và kiểm tra từ database.
+            */
+            items: orderItems.map((item) => ({
+                mabienthe: item.mabienthe,
+                tensanpham: item.tensanpham,
+                soluong: item.soluong,
+                giagoc: item.giagoc,
+                giasaukhuyenmai:
+                    item.giasaukhuyenmai
+            }))
+        };
+    } catch (error) {
+        await connection.rollback();
+
+        throw error;
+    } finally {
+        connection.release();
+    }
+};
+// ======================================================
+// CHECKOUT COD
+// ======================================================
+Order.checkoutCOD = async (orderData) => {
+    return createCheckoutOrder({
+        ...orderData,
+        paymentMethod: "COD"
+    });
+};
+
+// ======================================================
+// CHECKOUT ZALOPAY
+// ======================================================
+Order.checkoutZaloPay = async (
+    orderData
+) => {
+    return createCheckoutOrder({
+        ...orderData,
+        paymentMethod: "ZaloPay"
+    });
+};
+// ======================================================
+// LƯU MÃ GIAO DỊCH ZALOPAY VÀO ĐƠN HÀNG
+// ======================================================
+Order.updateZaloPayAppTransId = async (
+    orderId,
+    appTransId
+) => {
+    const sql = `
+        UPDATE donhang
+        SET
+            app_trans_id = ?,
+            ngaycapnhat =
+                CURRENT_TIMESTAMP
+        WHERE madonhang = ?
+          AND hinhthucthanhtoan =
+              'ZaloPay'
+          AND dathanhtoan = 0
+    `;
+
+    const [result] = await db.query(
+        sql,
+        [
+            appTransId,
+            orderId
+        ]
+    );
+
+    return result.affectedRows;
+};
+// ======================================================
+// TÌM ĐƠN HÀNG THEO APP_TRANS_ID
+// Dùng cho callback và query trạng thái.
+// ======================================================
+Order.getOrderByAppTransId = async (
+    appTransId
+) => {
+    const sql = `
+        SELECT
+            madonhang,
+            app_trans_id,
+            zalopay_trans_id,
+            manguoidung,
+            hinhthucthanhtoan,
+            dathanhtoan,
+            ngaythanhtoan,
+            tongthanhtoan,
+            trangthai
+        FROM donhang
+        WHERE app_trans_id = ?
+        LIMIT 1
+    `;
+
+    const [rows] = await db.query(
+        sql,
+        [appTransId]
+    );
+
+    return rows[0] || null;
+};
+// ======================================================
+// XÁC NHẬN THANH TOÁN ZALOPAY
+//
+// Callback có thể được gửi lại nhiều lần.
+// Hàm này xử lý theo hướng idempotent.
+// ======================================================
+Order.confirmZaloPayPayment = async ({
+    appTransId,
+    zaloPayTransId
+}) => {
+    const connection =
+        await db.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        const [rows] =
+            await connection.query(
+                `
+                SELECT
+                    madonhang,
+                    dathanhtoan,
+                    trangthai
+                FROM donhang
+                WHERE app_trans_id = ?
+                  AND hinhthucthanhtoan =
+                      'ZaloPay'
+                LIMIT 1
+                FOR UPDATE
+                `,
+                [appTransId]
+            );
+
+        const order = rows[0];
+
+        if (!order) {
+            throw createCheckoutError(
+                "Không tìm thấy đơn hàng ZaloPay",
+                404
+            );
+        }
+
+        /*
+            Callback đã được xử lý trước đó.
+            Không cập nhật hoặc trừ kho thêm lần nữa.
+        */
+        if (
+            Number(order.dathanhtoan) === 1
+        ) {
+            await connection.commit();
+
+            return {
+                madonhang:
+                    Number(order.madonhang),
+
+                alreadyPaid: true
+            };
+        }
+
+        await connection.query(
+            `
+            UPDATE donhang
+            SET
+                zalopay_trans_id = ?,
+                dathanhtoan = 1,
+                ngaythanhtoan =
+                    CURRENT_TIMESTAMP,
+                ngaycapnhat =
+                    CURRENT_TIMESTAMP
+            WHERE madonhang = ?
+            `,
+            [
+                zaloPayTransId || null,
+                order.madonhang
+            ]
+        );
+
+        await connection.commit();
+
+        return {
+            madonhang:
+                Number(order.madonhang),
+
+            alreadyPaid: false
+        };
+    } catch (error) {
+        await connection.rollback();
+        throw error;
+    } finally {
+        connection.release();
+    }
+};
+// ======================================================
+// HỦY ĐƠN ZALOPAY CHƯA THANH TOÁN VÀ HOÀN TỒN KHO
+//
+// Dùng khi:
+// - Đã tạo đơn trong database
+// - Nhưng ZaloPay không tạo được giao dịch
+//
+// Chỉ xử lý đơn:
+// - ZaloPay
+// - chưa thanh toán
+// - chờ xác nhận
+// ======================================================
+Order.cancelFailedZaloPayOrder = async (
+    orderId,
+    reason = "Không thể khởi tạo thanh toán ZaloPay"
+) => {
+    const connection =
+        await db.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        const [orderRows] =
+            await connection.query(
+                `
+                SELECT
+                    madonhang,
+                    hinhthucthanhtoan,
+                    dathanhtoan,
+                    trangthai
+                FROM donhang
+                WHERE madonhang = ?
+                LIMIT 1
+                FOR UPDATE
+                `,
+                [orderId]
+            );
+
+        const order = orderRows[0];
+
+        if (!order) {
+            await connection.commit();
+
+            return {
+                affected: false,
+                message:
+                    "Không tìm thấy đơn hàng"
+            };
+        }
+
+        if (
+            order.hinhthucthanhtoan !==
+            "ZaloPay" ||
+            Number(order.dathanhtoan) !== 0 ||
+            order.trangthai !==
+            "chờ xác nhận"
+        ) {
+            await connection.commit();
+
+            return {
+                affected: false,
+                message:
+                    "Đơn hàng không đủ điều kiện hoàn tác"
+            };
+        }
+
+        const [itemRows] =
+            await connection.query(
+                `
+                SELECT
+                    mabienthe,
+                    soluong
+                FROM chitietdonhang
+                WHERE madonhang = ?
+                FOR UPDATE
+                `,
+                [orderId]
+            );
+
+        // Hoàn lại tồn kho
+        for (const item of itemRows) {
+            await connection.query(
+                `
+                UPDATE bienthesanpham
+                SET soluongton =
+                    soluongton + ?
+                WHERE mabienthe = ?
+                `,
+                [
+                    Number(item.soluong),
+                    Number(item.mabienthe)
+                ]
+            );
+        }
+
+        await connection.query(
+            `
+            UPDATE donhang
+            SET
+                trangthai = 'đã hủy',
+                lydo_huy = ?,
+                ngaycapnhat =
+                    CURRENT_TIMESTAMP
+            WHERE madonhang = ?
+            `,
+            [
+                String(reason).slice(0, 500),
+                orderId
+            ]
+        );
+
+        await connection.commit();
+
+        return {
+            affected: true,
+            message:
+                "Đã hủy đơn và hoàn tồn kho"
+        };
+    } catch (error) {
+        await connection.rollback();
+        throw error;
+    } finally {
+        connection.release();
+    }
+};
 module.exports = Order;

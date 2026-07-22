@@ -13,6 +13,9 @@ import Profile from "./pages/Profile";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
 import AdminRoute from "./components/AdminRoute";
+import Checkout from "./pages/Checkout";
+import OrderSuccess from "./pages/OrderSuccess";
+import Wishlist from "./pages/Wishlist";
 import "./App.css";
 function App() {
   return (
@@ -49,11 +52,41 @@ function App() {
           }
         />
         <Route
+          path="/wishlist"
+          element={
+            <>
+              <Navbar />
+              <Wishlist />
+              <Footer />
+            </>
+          }
+        />
+        <Route
           path="/cart"
           element={
             <>
               <Navbar />
               <Cart />
+              <Footer />
+            </>
+          }
+        />
+        <Route
+          path="/checkout"
+          element={
+            <>
+              <Navbar />
+              <Checkout />
+              <Footer />
+            </>
+          }
+        />
+        <Route
+          path="/order-success"
+          element={
+            <>
+              <Navbar />
+              <OrderSuccess />
               <Footer />
             </>
           }

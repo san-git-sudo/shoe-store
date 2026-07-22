@@ -1198,7 +1198,270 @@ const getMyOrderDetail = async (req, res) => {
         });
     }
 };
+// ======================================================
+// KHÁCH HÀNG: THANH TOÁN COD
+//
+// POST /api/orders/checkout/cod
+//
+// Backend chỉ nhận:
+// - thông tin người nhận
+// - mã voucher nếu có
+// - mã biến thể và số lượng
+//
+// Không nhận giá, giảm giá hoặc tổng tiền từ frontend.
+// ======================================================
+const checkoutCOD = async (req, res) => {
+    try {
+        const customerId =
+            getAuthenticatedCustomerId(req);
 
+        if (!customerId) {
+            return res.status(401).json({
+                success: false,
+                message:
+                    "Thông tin đăng nhập không hợp lệ"
+            });
+        }
+
+        let {
+            tennguoinhan,
+            sodienthoai,
+            diachigiao,
+            ghichu,
+            mavoucher,
+            items
+        } = req.body;
+
+        tennguoinhan = String(
+            tennguoinhan || ""
+        ).trim();
+
+        sodienthoai = String(
+            sodienthoai || ""
+        ).trim();
+
+        diachigiao = String(
+            diachigiao || ""
+        ).trim();
+
+        ghichu = String(
+            ghichu || ""
+        ).trim();
+
+        // ==================================================
+        // THÔNG TIN NGƯỜI NHẬN
+        // ==================================================
+        if (
+            tennguoinhan.length < 2 ||
+            tennguoinhan.length > 100
+        ) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Tên người nhận phải có từ 2 đến 100 ký tự"
+            });
+        }
+
+        /*
+            Đồng bộ với đăng ký:
+            số điện thoại Việt Nam gồm 10 số.
+        */
+        if (
+            !/^0(3|5|7|8|9)\d{8}$/.test(
+                sodienthoai
+            )
+        ) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Số điện thoại không hợp lệ"
+            });
+        }
+
+        if (
+            diachigiao.length < 10 ||
+            diachigiao.length > 500
+        ) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Địa chỉ giao hàng phải có từ 10 đến 500 ký tự"
+            });
+        }
+
+        if (ghichu.length > 500) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Ghi chú không được vượt quá 500 ký tự"
+            });
+        }
+
+        ghichu = ghichu || null;
+
+        // ==================================================
+        // VOUCHER KHÔNG BẮT BUỘC
+        // ==================================================
+        if (
+            mavoucher === undefined ||
+            mavoucher === null ||
+            mavoucher === ""
+        ) {
+            mavoucher = null;
+        } else {
+            mavoucher = Number(mavoucher);
+
+            if (
+                !Number.isInteger(mavoucher) ||
+                mavoucher <= 0
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "Mã voucher không hợp lệ"
+                });
+            }
+        }
+
+        // ==================================================
+        // KIỂM TRA GIỎ HÀNG
+        // ==================================================
+        if (
+            !Array.isArray(items) ||
+            items.length === 0
+        ) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Giỏ hàng không được để trống"
+            });
+        }
+
+        /*
+            Giới hạn nhẹ để tránh payload bất thường.
+            Một đơn tối đa 50 dòng biến thể.
+        */
+        if (items.length > 50) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Đơn hàng có quá nhiều sản phẩm"
+            });
+        }
+
+        const normalizedItems = [];
+
+        const variantIds = new Set();
+
+        for (const item of items) {
+            const variantId = Number(
+                item?.mabienthe
+            );
+
+            const quantity = Number(
+                item?.soluong
+            );
+
+            if (
+                !Number.isInteger(
+                    variantId
+                ) ||
+                variantId <= 0
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "Mã biến thể sản phẩm không hợp lệ"
+                });
+            }
+
+            if (
+                !Number.isInteger(
+                    quantity
+                ) ||
+                quantity <= 0
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "Số lượng sản phẩm phải là số nguyên dương"
+                });
+            }
+
+            /*
+                Giới hạn mỗi biến thể tối đa 100
+                để tránh request bất thường.
+                Tồn kho thật vẫn được kiểm tra ở Model.
+            */
+            if (quantity > 100) {
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "Số lượng của một sản phẩm không được vượt quá 100"
+                });
+            }
+
+            if (
+                variantIds.has(variantId)
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        `Biến thể ${variantId} đang bị lặp trong giỏ hàng`
+                });
+            }
+
+            variantIds.add(variantId);
+
+            normalizedItems.push({
+                mabienthe: variantId,
+                soluong: quantity
+            });
+        }
+
+        const createdOrder =
+            await Order.checkoutCOD({
+                customerId,
+                tennguoinhan,
+                sodienthoai,
+                diachigiao,
+                ghichu,
+                mavoucher,
+                items: normalizedItems
+            });
+
+        return res.status(201).json({
+            success: true,
+            message:
+                "Đặt hàng COD thành công",
+            data: createdOrder
+        });
+    } catch (error) {
+        console.error(
+            "Lỗi đặt hàng COD:",
+            error
+        );
+
+        /*
+            Lỗi nghiệp vụ được Model gắn statusCode.
+            Lỗi SQL hoặc lỗi ngoài dự kiến trả 500.
+        */
+        if (error.statusCode) {
+            return res
+                .status(error.statusCode)
+                .json({
+                    success: false,
+                    message: error.message
+                });
+        }
+
+        return res.status(500).json({
+            success: false,
+            message:
+                "Không thể tạo đơn hàng COD"
+        });
+    }
+};
 module.exports = {
     getAdminOrders,
     getOrderDetail,
@@ -1208,5 +1471,7 @@ module.exports = {
     getRevenueStatistics,
 
     getMyOrders,
-    getMyOrderDetail
+    getMyOrderDetail,
+
+    checkoutCOD
 };

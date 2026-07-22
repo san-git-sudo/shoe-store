@@ -148,17 +148,41 @@ function OrderHistory() {
     }, []);
 
     // ==================================================
-    // 2. LỌC ĐƠN HÀNG THEO TRẠNG THÁI
-    // Chỉ lọc trên danh sách đã nhận, không gọi API lại.
+    // 2. LỌC ĐƠN HÀNG
+    //
+    // Dùng chung một bộ lọc cho:
+    // - Trạng thái xử lý đơn hàng
+    // - Trạng thái thanh toán
+    //
+    // Chỉ lọc trên dữ liệu đã nhận, không gọi API lại.
     // ==================================================
     const filteredOrders = useMemo(() => {
         if (statusFilter === "all") {
             return orders;
         }
 
+        if (statusFilter === "paid") {
+            return orders.filter(
+                (order) =>
+                    Number(
+                        order.dathanhtoan
+                    ) === 1
+            );
+        }
+
+        if (statusFilter === "unpaid") {
+            return orders.filter(
+                (order) =>
+                    Number(
+                        order.dathanhtoan
+                    ) !== 1
+            );
+        }
+
         return orders.filter(
             (order) =>
-                order.trangthai === statusFilter
+                order.trangthai ===
+                statusFilter
         );
     }, [orders, statusFilter]);
 
@@ -377,7 +401,7 @@ function OrderHistory() {
                         </p>
                     </div>
 
-                    <div className="w-full sm:w-64">
+                    <div className="w-full sm:w-72">
                         <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-zinc-500">
                             Lọc theo trạng thái
                         </label>
@@ -395,16 +419,28 @@ function OrderHistory() {
                                 Tất cả đơn hàng
                             </option>
 
-                            {ORDER_STATUSES.map(
-                                (status) => (
-                                    <option
-                                        key={status}
-                                        value={status}
-                                    >
-                                        {status}
-                                    </option>
-                                )
-                            )}
+                            <optgroup label="Trạng thái đơn hàng">
+                                {ORDER_STATUSES.map(
+                                    (status) => (
+                                        <option
+                                            key={status}
+                                            value={status}
+                                        >
+                                            {status}
+                                        </option>
+                                    )
+                                )}
+                            </optgroup>
+
+                            <optgroup label="Trạng thái thanh toán">
+                                <option value="paid">
+                                    Đã thanh toán
+                                </option>
+
+                                <option value="unpaid">
+                                    Chưa thanh toán
+                                </option>
+                            </optgroup>
                         </select>
                     </div>
                 </div>
@@ -463,10 +499,9 @@ function OrderHistory() {
                             </h2>
 
                             <p className="mt-2 text-zinc-500">
-                                {statusFilter ===
-                                    "all"
+                                {statusFilter === "all"
                                     ? "Bạn chưa có đơn hàng nào tại KICKZONE."
-                                    : `Không có đơn hàng ở trạng thái "${statusFilter}".`}
+                                    : "Không có đơn hàng phù hợp với trạng thái đã chọn."}
                             </p>
 
                             <button
@@ -690,8 +725,8 @@ function OrderHistory() {
                                     className={`mt-2 font-black ${Number(
                                         selectedOrder.dathanhtoan
                                     ) === 1
-                                            ? "text-emerald-700"
-                                            : "text-amber-700"
+                                        ? "text-emerald-700"
+                                        : "text-amber-700"
                                         }`}
                                 >
                                     {Number(
